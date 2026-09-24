@@ -11,7 +11,11 @@ import type {
   EnglishLessonWithProgress,
   EnglishWord,
 } from '@/types'
-import type { CreateLessonFormValues } from '@/schemas/englishSchema'
+import {
+  type CreateLessonFormValues,
+  type UpdateLessonFormValues,
+  extractYoutubeId,
+} from '@/schemas/englishSchema'
 import { format } from 'date-fns'
 
 export interface HighlightRange {
@@ -502,8 +506,11 @@ export function useEnglishStudy() {
         })
       }
 
+      const youtubeId = extractYoutubeId(values.youtube_url)
+
       const contentObj: EnglishLessonContent = {
         version: 2,
+        youtube_id: youtubeId,
         transcript: values.transcript,
         translation: values.translation,
         words: wordsList,
@@ -541,6 +548,94 @@ export function useEnglishStudy() {
     },
     onError: (err: Error) => {
       toast.error('Lỗi khi tạo bài học: ' + err.message)
+    },
+  })
+
+  // Update lesson mutation
+  const updateLessonMutation = useMutation({
+    mutationFn: async ({ id, values }: { id: string; values: UpdateLessonFormValues }) => {
+      const existingLesson = rawLessons.find((l) => l.id === id)
+      let existingContent: Partial<EnglishLessonContent> = {}
+      if (existingLesson?.content) {
+        try {
+          existingContent = JSON.parse(existingLesson.content)
+        } catch {
+          existingContent = {}
+        }
+      }
+
+      const youtubeId = extractYoutubeId(values.youtube_url)
+
+      let wordsList = existingContent.words || []
+      let questionsList = existingContent.questions || []
+
+      // If transcript changed or questions were empty, generate new keywords & questions
+      if (!wordsList.length || existingContent.transcript !== values.transcript) {
+        const rawWords = values.transcript
+          .replace(/[^a-zA-Z\s]/g, '')
+          .split(/\s+/)
+          .filter((w) => w.length > 3)
+        const uniqueWords = Array.from(new Set(rawWords)).slice(0, 10)
+
+        wordsList = uniqueWords.map((w) => [w, `từ khóa: ${w}`])
+
+        if (!questionsList.length || existingContent.transcript !== values.transcript) {
+          questionsList = []
+          for (let i = 0; i < 10; i++) {
+            const targetWord = uniqueWords[i % uniqueWords.length] || 'word'
+            questionsList.push({
+              type: 'fill',
+              question: `Điền từ thích hợp vào chỗ trống trong câu số ${i + 1} (${targetWord}).`,
+              sourceWord: targetWord,
+              answer: targetWord,
+            })
+          }
+          for (let i = 0; i < 10; i++) {
+            const targetWord = uniqueWords[i % uniqueWords.length] || 'word'
+            questionsList.push({
+              type: 'meaning',
+              question: `Từ "${targetWord}" trong bài đọc mang ý nghĩa gì?`,
+              answer: targetWord,
+            })
+          }
+        }
+      }
+
+      const updatedContent: EnglishLessonContent = {
+        version: 2,
+        youtube_id: youtubeId !== undefined ? (youtubeId || undefined) : existingContent.youtube_id,
+        transcript: values.transcript,
+        translation: values.translation,
+        words: wordsList,
+        questions: questionsList,
+        speaking: existingContent.speaking || {
+          prompt: `Summarize the main idea of ${values.title} in 30 seconds.`,
+          sample: values.transcript.slice(0, 100),
+        },
+      }
+
+      const { data, error } = await supabase
+        .from('english_lessons')
+        .update({
+          title: values.title,
+          level: values.level,
+          topic: values.topic,
+          content: JSON.stringify(updatedContent),
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['english_lessons'] })
+      toast.success('Đã cập nhật bài học thành công!')
+      setSelectedLessonId(data.id)
+    },
+    onError: (err: Error) => {
+      toast.error('Lỗi khi cập nhật bài học: ' + err.message)
     },
   })
 
@@ -662,6 +757,9 @@ export function useEnglishStudy() {
     setIsQuizMode,
     createLesson: createLessonMutation.mutateAsync,
     isCreatingLesson: createLessonMutation.isPending,
+    updateLesson: (id: string, values: UpdateLessonFormValues) =>
+      updateLessonMutation.mutateAsync({ id, values }),
+    isUpdatingLesson: updateLessonMutation.isPending,
     deleteLesson: deleteLessonMutation.mutateAsync,
     // Vocabulary methods
     savedWords,

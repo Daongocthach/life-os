@@ -19,6 +19,7 @@ import {
   List,
   Plus,
   Trash2,
+  Pencil,
   Layers,
   GraduationCap,
   Heart,
@@ -49,7 +50,13 @@ import {
 import { useEnglishStudy } from '@/hooks/useEnglishStudy'
 import { useI18n } from '@/hooks/useI18n'
 import { useConfirm } from '@/hooks/useConfirm'
-import { createLessonSchema, type CreateLessonFormValues } from '@/schemas/englishSchema'
+import {
+  createLessonSchema,
+  type CreateLessonFormValues,
+  updateLessonSchema,
+  type UpdateLessonFormValues,
+} from '@/schemas/englishSchema'
+import type { EnglishLessonContent } from '@/types'
 
 interface TextToken {
   text: string
@@ -104,6 +111,8 @@ export function EnglishView() {
     setIsQuizMode,
     createLesson,
     isCreatingLesson,
+    updateLesson,
+    isUpdatingLesson,
     deleteLesson,
     savedWords,
     toggleSaveWord,
@@ -115,6 +124,8 @@ export function EnglishView() {
   } = useEnglishStudy()
 
   const [isAddLessonOpen, setIsAddLessonOpen] = useState(false)
+  const [isEditLessonOpen, setIsEditLessonOpen] = useState(false)
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null)
   const [vocabSearch, setVocabSearch] = useState('')
 
   // React Hook Form for Creating New Lesson
@@ -129,15 +140,54 @@ export function EnglishView() {
       title: '',
       level: 'TOEIC 550–650',
       topic: 'Music Lyrics',
+      youtube_url: '',
       transcript: '',
       translation: '',
     },
+  })
+
+  // React Hook Form for Updating Existing Lesson
+  const {
+    register: registerEditLesson,
+    handleSubmit: handleSubmitEditLesson,
+    reset: resetEditLesson,
+    formState: { errors: errorsEditLesson },
+  } = useForm<UpdateLessonFormValues>({
+    resolver: zodResolver(updateLessonSchema),
   })
 
   const onCreateLessonSubmit = async (values: CreateLessonFormValues) => {
     await createLesson(values)
     resetLesson()
     setIsAddLessonOpen(false)
+  }
+
+  const openEditLessonModal = (lessonId: string) => {
+    const lesson = lessons.find((l) => l.id === lessonId)
+    if (!lesson) return
+    let parsed: Partial<EnglishLessonContent> = {}
+    try {
+      parsed = JSON.parse(lesson.content)
+    } catch {
+      parsed = {}
+    }
+    setEditingLessonId(lesson.id)
+    resetEditLesson({
+      title: lesson.title,
+      level: lesson.level || 'B1',
+      topic: lesson.topic || 'General',
+      youtube_url: parsed.youtube_id ? `https://www.youtube.com/watch?v=${parsed.youtube_id}` : '',
+      transcript: parsed.transcript || '',
+      translation: parsed.translation || '',
+    })
+    setIsEditLessonOpen(true)
+  }
+
+  const onUpdateLessonSubmit = async (values: UpdateLessonFormValues) => {
+    if (!editingLessonId) return
+    await updateLesson(editingLessonId, values)
+    setIsEditLessonOpen(false)
+    setEditingLessonId(null)
   }
 
   const handleDeleteLesson = async (id: string, title: string) => {
@@ -300,6 +350,19 @@ export function EnglishView() {
             </button>
           </div>
 
+          {currentLesson && activeTab === 'study' && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => openEditLessonModal(currentLesson.id)}
+              className="text-xs h-8"
+              title="Chỉnh sửa bài học & video đang học"
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1" />
+              Sửa bài
+            </Button>
+          )}
+
           <Button
             size="sm"
             onClick={() => setIsAddLessonOpen(true)}
@@ -353,15 +416,32 @@ export function EnglishView() {
                       </p>
                     </div>
 
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteLesson(lesson.id, lesson.title)}
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
-                      title="Xóa bài học này"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center space-x-0.5 shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEditLessonModal(lesson.id)
+                        }}
+                        className="h-7 w-7 text-muted-foreground hover:text-primary shrink-0"
+                        title="Chỉnh sửa bài học này"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteLesson(lesson.id, lesson.title)
+                        }}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                        title="Xóa bài học này"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </CardHeader>
 
                   <CardContent className="p-4 pt-1 space-y-3">
@@ -473,22 +553,34 @@ export function EnglishView() {
           </Card>
 
           {/* YouTube Lyric Video (Official Audio & Lyrics) Placed Directly Above Lyrics Box */}
-          {parsedContent?.youtube_id && (
+          {parsedContent?.youtube_id ? (
             <Card className="border-border/80 overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between px-4 py-2.5 bg-muted/50 border-b border-border/60 text-xs">
+              <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border/60 text-xs">
                 <span className="font-semibold flex items-center gap-1.5 text-foreground">
                   <YoutubeIcon className="h-4 w-4 text-red-600 fill-current" />
                   Video YouTube Lyrics (Chính thức)
                 </span>
-                <a
-                  href={`https://www.youtube.com/watch?v=${parsedContent.youtube_id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors text-[11px]"
-                >
-                  Mở trên YouTube
-                  <ExternalLink className="h-3 w-3" />
-                </a>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => currentLesson && openEditLessonModal(currentLesson.id)}
+                    className="h-6 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                    title="Chỉnh sửa bài học & link video"
+                  >
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Sửa video / bài
+                  </Button>
+                  <a
+                    href={`https://www.youtube.com/watch?v=${parsedContent.youtube_id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors text-[11px]"
+                  >
+                    Mở trên YouTube
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
               </div>
               <div className="relative w-full aspect-video max-h-[380px] bg-black">
                 <iframe
@@ -500,6 +592,22 @@ export function EnglishView() {
                 />
               </div>
             </Card>
+          ) : (
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-lg bg-muted/30 border border-dashed border-border/70 text-xs">
+              <span className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
+                <YoutubeIcon className="h-3.5 w-3.5 text-muted-foreground/60" />
+                Chưa có video YouTube cho bài này.
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => currentLesson && openEditLessonModal(currentLesson.id)}
+                className="h-6 px-2 text-[11px] text-primary hover:bg-primary/10"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Gắn link YouTube
+              </Button>
+            </div>
           )}
 
           {/* Interactive Player Card with Full Controls & Word Focus Playback */}
@@ -1133,6 +1241,20 @@ export function EnglishView() {
               )}
             </div>
 
+            <div className="space-y-1">
+              <label className="text-xs font-semibold flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <YoutubeIcon className="h-3.5 w-3.5 text-red-600 fill-current" />
+                  Link YouTube / Video ID (Tùy chọn)
+                </span>
+                <span className="text-[10px] text-muted-foreground font-normal">Link bài hát hoặc lyric video</span>
+              </label>
+              <Input
+                placeholder="VD: https://www.youtube.com/watch?v=m-M1AtrxztU hoặc m-M1AtrxztU"
+                {...registerLesson('youtube_url')}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold">Chủ đề (Topic)</label>
@@ -1186,6 +1308,107 @@ export function EnglishView() {
               </Button>
               <Button type="submit" disabled={isCreatingLesson} className="text-xs font-bold">
                 {isCreatingLesson ? t.common.loading : 'Lưu bài học'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================= MODAL: CHỈNH SỬA BÀI HỌC TIẾNG ANH ================= */}
+      <Dialog open={isEditLessonOpen} onOpenChange={setIsEditLessonOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              Chỉnh sửa bài học & video
+            </DialogTitle>
+            <DialogDescription>
+              Cập nhật lại tiêu đề, link video YouTube/lời bài hát, đoạn văn hoặc bản dịch nghĩa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmitEditLesson(onUpdateLessonSubmit)} className="space-y-3.5 mt-2">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold">Tiêu đề bài học</label>
+              <Input
+                placeholder={'VD: Song: "Rather Be" — Clean Bandit ft. Jess Glynne'}
+                {...registerEditLesson('title')}
+              />
+              {errorsEditLesson.title && (
+                <p className="text-[11px] text-destructive">{errorsEditLesson.title.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <YoutubeIcon className="h-3.5 w-3.5 text-red-600 fill-current" />
+                  Link YouTube / Video ID
+                </span>
+                <span className="text-[10px] text-muted-foreground font-normal">Hỗ trợ link full hoặc mã ID 11 ký tự</span>
+              </label>
+              <Input
+                placeholder="VD: https://www.youtube.com/watch?v=m-M1AtrxztU hoặc m-M1AtrxztU"
+                {...registerEditLesson('youtube_url')}
+              />
+              {errorsEditLesson.youtube_url && (
+                <p className="text-[11px] text-destructive">{errorsEditLesson.youtube_url.message}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold">Chủ đề (Topic)</label>
+                <Input placeholder="VD: Pop / Electronic, Travel, Work..." {...registerEditLesson('topic')} />
+                {errorsEditLesson.topic && (
+                  <p className="text-[11px] text-destructive">{errorsEditLesson.topic.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold">Trình độ (Level)</label>
+                <Input placeholder="VD: B1, B2, TOEIC 500-600..." {...registerEditLesson('level')} />
+                {errorsEditLesson.level && (
+                  <p className="text-[11px] text-destructive">{errorsEditLesson.level.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold">Đoạn văn tiếng Anh / Lời bài hát (Transcript)</label>
+              <Textarea
+                rows={5}
+                placeholder="Nhập toàn bộ lời bài hát hoặc văn bản tiếng Anh..."
+                {...registerEditLesson('transcript')}
+              />
+              {errorsEditLesson.transcript && (
+                <p className="text-[11px] text-destructive">{errorsEditLesson.transcript.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold">Bản dịch nghĩa (Tiếng Việt)</label>
+              <Textarea
+                rows={4}
+                placeholder="Nhập bản dịch nghĩa tiếng Việt..."
+                {...registerEditLesson('translation')}
+              />
+              {errorsEditLesson.translation && (
+                <p className="text-[11px] text-destructive">{errorsEditLesson.translation.message}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 border-t border-border/50">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditLessonOpen(false)}
+                className="text-xs"
+              >
+                {t.common.cancel}
+              </Button>
+              <Button type="submit" disabled={isUpdatingLesson} className="text-xs font-bold">
+                {isUpdatingLesson ? t.common.loading : 'Cập nhật thay đổi'}
               </Button>
             </div>
           </form>
