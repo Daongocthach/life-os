@@ -8,7 +8,6 @@ import {
   BookOpen,
   Utensils,
   ArrowRight,
-  Sparkles,
   Eye,
   EyeOff,
 } from 'lucide-react'
@@ -16,6 +15,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { LifeOSLogo } from '@/components/common/LifeOSLogo'
 import { useDashboard } from '@/hooks/useDashboard'
 import { useI18n } from '@/hooks/useI18n'
 import { usePrivacy } from '@/hooks/usePrivacy'
@@ -34,10 +34,8 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
     <div className="space-y-6 pb-20">
       {/* Greeting Banner */}
       <div className="rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5 border border-primary/20">
-        <div className="flex items-center space-x-3">
-          <div className="p-2.5 rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Sparkles className="h-5 w-5" />
-          </div>
+        <div className="flex items-center space-x-3.5">
+          <LifeOSLogo size={42} />
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               {t.dashboard.summaryToday}

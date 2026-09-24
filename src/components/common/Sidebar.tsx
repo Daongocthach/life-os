@@ -5,7 +5,6 @@ import {
   Dumbbell,
   Utensils,
   CheckSquare,
-  Sparkles,
   Globe,
   Sun,
   Moon,
@@ -14,6 +13,7 @@ import {
   EyeOff,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LifeOSLogo } from '@/components/common/LifeOSLogo'
 import { useI18n } from '@/hooks/useI18n'
 import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
@@ -45,22 +45,7 @@ export function Sidebar({ currentTab, onSelectTab }: SidebarProps) {
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 z-40 border-r border-border/70 bg-card/60 backdrop-blur-xl">
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between px-5 border-b border-border/60">
-        <div className="flex items-center space-x-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-1.5">
-              <span className="font-bold tracking-tight text-lg text-foreground">LifeOS</span>
-              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-primary/10 text-primary">
-                v1.0
-              </span>
-            </div>
-            <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
-              Personal OS
-            </p>
-          </div>
-        </div>
+        <LifeOSLogo size={36} showText subtitle="Personal OS" textClassName="text-lg" />
 
         {/* Desktop Quick Eye Privacy Toggle */}
         <Button

@@ -1,5 +1,6 @@
-import { Moon, Sun, Globe, LogOut, Sparkles, Eye, EyeOff } from 'lucide-react'
+import { Moon, Sun, Globe, LogOut, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LifeOSLogo } from '@/components/common/LifeOSLogo'
 import { useTheme } from '@/hooks/useTheme'
 import { useI18n } from '@/hooks/useI18n'
 import { useAuth } from '@/hooks/useAuth'
@@ -15,11 +16,9 @@ export function Header() {
     <header className="md:hidden sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="container flex h-14 items-center justify-between px-4">
         {/* Mobile Brand */}
-        <div className="flex items-center space-x-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <span className="font-bold tracking-tight text-base">LifeOS</span>
+        <div className="flex items-center space-x-2.5">
+          <LifeOSLogo size={28} />
+          <span className="font-bold tracking-tight text-base text-foreground">LifeOS</span>
         </div>
 
         {/* Mobile Controls */}

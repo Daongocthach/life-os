@@ -1,9 +1,10 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Sparkles, Lock, Mail, ArrowRight } from 'lucide-react'
+import { Lock, Mail, ArrowRight } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { LifeOSLogo } from '@/components/common/LifeOSLogo'
 import { useAuth } from '@/hooks/useAuth'
 import { useI18n } from '@/hooks/useI18n'
 import { loginSchema, type LoginFormValues } from '@/schemas/authSchema'
@@ -32,12 +33,12 @@ export function LoginView() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-muted/20">
       <Card className="w-full max-w-md border-border/80 shadow-xl overflow-hidden">
         <div className="bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 pb-4 border-b border-border/40 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mx-auto shadow-md mb-3">
-            <Sparkles className="h-6 w-6" />
+          <div className="flex justify-center mb-3">
+            <LifeOSLogo size={56} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">LifeOS</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Hệ điều hành quản lý cuộc sống: Chi tiêu, Gym, Thực đơn & Tiếng Anh
+            Hệ điều hành quản lý cuộc sống: Chi tiêu, Gym, Thực đơn, Tiếng Anh & Nhiệm vụ
           </p>
         </div>
 
