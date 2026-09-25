@@ -25,6 +25,7 @@ import {
   Heart,
   Search,
   ExternalLink,
+  Languages,
 } from 'lucide-react'
 
 function YoutubeIcon({ className = 'h-4 w-4' }: { className?: string }) {
@@ -68,6 +69,7 @@ interface TextToken {
 interface LineData {
   lineIndex: number
   rawText: string
+  translationText?: string
   isEmpty: boolean
   tokens: TextToken[]
 }
@@ -127,6 +129,8 @@ export function EnglishView() {
   const [isEditLessonOpen, setIsEditLessonOpen] = useState(false)
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null)
   const [vocabSearch, setVocabSearch] = useState('')
+  // Active Translation Toggle state (Chế độ dịch chủ động: Bật/Tắt)
+  const [showTranslation, setShowTranslation] = useState<boolean>(true)
 
   // React Hook Form for Creating New Lesson
   const {
@@ -207,6 +211,12 @@ export function EnglishView() {
   const lines = useMemo<LineData[]>(() => {
     if (!parsedContent?.transcript) return []
     const rawLines = parsedContent.transcript.split('\n')
+    const rawTranslations = parsedContent?.translation ? parsedContent.translation.split('\n') : []
+
+    const isSameLength = rawLines.length === rawTranslations.length
+    const nonEmptyTranslations = rawTranslations.filter((t) => t.trim().length > 0)
+    let transNonEmptyIdx = 0
+
     let runningIndex = 0
 
     return rawLines.map((rawLine, lIdx) => {
@@ -230,14 +240,24 @@ export function EnglishView() {
         })
       }
 
+      let lineTranslation = ''
+      if (rawLine.trim().length > 0) {
+        if (isSameLength) {
+          lineTranslation = rawTranslations[lIdx] || ''
+        } else {
+          lineTranslation = nonEmptyTranslations[transNonEmptyIdx++] || ''
+        }
+      }
+
       return {
         lineIndex: lIdx,
         rawText: rawLine,
+        translationText: lineTranslation,
         isEmpty: rawLine.trim().length === 0,
         tokens: lineTokens,
       }
     })
-  }, [parsedContent?.transcript])
+  }, [parsedContent?.transcript, parsedContent?.translation])
 
   // Filter saved vocabulary words
   const filteredWords = useMemo(() => {
@@ -684,7 +704,7 @@ export function EnglishView() {
                 <div className="space-y-4">
                   {/* Interactive Word-Clickable Karaoke Box with Preserved Line Breaks */}
                   <div className="p-5 rounded-xl bg-background border border-border/70 shadow-xs relative">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3 pb-2 border-b border-border/40">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-border/40">
                       <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
                         <Pointer className="h-3.5 w-3.5 text-primary" />
                         <span>
@@ -692,22 +712,41 @@ export function EnglishView() {
                           <strong className="text-foreground">Nhấp chuột phải:</strong> Xem nghĩa & lưu từ vựng ❤️
                         </span>
                       </span>
-                      {isPlaying && !isPaused && (
-                        <span className="flex items-center text-[11px] text-primary font-semibold animate-pulse">
-                          <Volume2 className="h-3.5 w-3.5 mr-1" />
-                          Đang đọc...
-                        </span>
-                      )}
-                      {isPaused && (
-                        <span className="flex items-center text-[11px] text-amber-500 font-semibold">
-                          <Pause className="h-3.5 w-3.5 mr-1" />
-                          Đang tạm dừng
-                        </span>
-                      )}
+
+                      <div className="flex items-center space-x-2">
+                        {isPlaying && !isPaused && (
+                          <span className="flex items-center text-[11px] text-primary font-semibold animate-pulse mr-1">
+                            <Volume2 className="h-3.5 w-3.5 mr-1" />
+                            Đang đọc...
+                          </span>
+                        )}
+                        {isPaused && (
+                          <span className="flex items-center text-[11px] text-amber-500 font-semibold mr-1">
+                            <Pause className="h-3.5 w-3.5 mr-1" />
+                            Đang tạm dừng
+                          </span>
+                        )}
+
+                        {/* Nút tắt/bật chế độ dịch chủ động */}
+                        <Button
+                          size="sm"
+                          variant={showTranslation ? 'secondary' : 'outline'}
+                          onClick={() => setShowTranslation((prev) => !prev)}
+                          className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
+                            showTranslation
+                              ? 'bg-primary/10 text-primary border-primary/30 font-semibold hover:bg-primary/20'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                          title="Bật hoặc tắt hiển thị bản dịch tiếng Việt dưới từng dòng"
+                        >
+                          <Languages className="h-3.5 w-3.5 mr-1.5" />
+                          {showTranslation ? 'Dịch: Đang Bật' : 'Dịch: Đang Tắt'}
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Scrollable Container with Fixed Max-Height */}
-                    <div className="max-h-[380px] overflow-y-auto pr-2 space-y-1.5 scrollbar-thin select-text">
+                    <div className="max-h-[420px] overflow-y-auto pr-2 space-y-1.5 scrollbar-thin select-text">
                       {lines.map((line) => {
                         if (line.isEmpty) {
                           return <div key={line.lineIndex} className="h-3" />
@@ -716,77 +755,91 @@ export function EnglishView() {
                         return (
                           <div
                             key={line.lineIndex}
-                            className="min-h-[1.75rem] leading-relaxed text-base sm:text-lg"
+                            className="py-1 px-2 -mx-2 rounded-lg transition-colors hover:bg-muted/20"
                           >
-                            {line.tokens.map((token, tIdx) => {
-                              if (!token.isWord) {
+                            {/* Dòng tiếng Anh */}
+                            <div className="min-h-[1.75rem] leading-relaxed text-base sm:text-lg">
+                              {line.tokens.map((token, tIdx) => {
+                                if (!token.isWord) {
+                                  return (
+                                    <span key={tIdx} className="text-foreground">
+                                      {token.text}
+                                    </span>
+                                  )
+                                }
+
+                                const isCurrentPlaying =
+                                  highlightRange !== null &&
+                                  token.startIndex >= highlightRange.start &&
+                                  token.startIndex < highlightRange.end
+
+                                const isFocused =
+                                  focusedCharIndex !== null &&
+                                  token.startIndex <= focusedCharIndex &&
+                                  focusedCharIndex < token.endIndex
+
+                                const isSaved = isWordSaved(token.text)
+
                                 return (
-                                  <span key={tIdx} className="text-foreground">
+                                  <span
+                                    key={tIdx}
+                                    tabIndex={0}
+                                    role="button"
+                                    onClick={() => setFocusedWord(token.startIndex, token.text.length)}
+                                    onContextMenu={(e) => handleWordContextMenu(e, token)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        setFocusedWord(token.startIndex, token.text.length)
+                                      }
+                                    }}
+                                    title={`Nhấp trái để chọn từ "${token.text}" • Chuột phải để xem nghĩa & lưu từ ❤️`}
+                                    className={`inline-block transition-all duration-100 rounded px-1 cursor-pointer select-none focus:outline-none ${
+                                      isCurrentPlaying
+                                        ? 'bg-primary text-primary-foreground font-bold shadow-md scale-105 ring-2 ring-primary/40 animate-pulse z-10'
+                                        : isFocused
+                                        ? 'bg-amber-500/25 text-amber-800 dark:text-amber-200 font-bold ring-2 ring-amber-500/50 shadow-xs z-10'
+                                        : 'hover:bg-primary/20 hover:text-primary active:scale-95 text-foreground'
+                                    } ${
+                                      isSaved
+                                        ? 'underline decoration-rose-500/80 decoration-wavy underline-offset-4'
+                                        : ''
+                                    }`}
+                                  >
                                     {token.text}
                                   </span>
                                 )
-                              }
+                              })}
+                            </div>
 
-                              const isCurrentPlaying =
-                                highlightRange !== null &&
-                                token.startIndex >= highlightRange.start &&
-                                token.startIndex < highlightRange.end
-
-                              const isFocused =
-                                focusedCharIndex !== null &&
-                                token.startIndex <= focusedCharIndex &&
-                                focusedCharIndex < token.endIndex
-
-                              const isSaved = isWordSaved(token.text)
-
-                              return (
-                                <span
-                                  key={tIdx}
-                                  tabIndex={0}
-                                  role="button"
-                                  onClick={() => setFocusedWord(token.startIndex, token.text.length)}
-                                  onContextMenu={(e) => handleWordContextMenu(e, token)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      e.preventDefault()
-                                      setFocusedWord(token.startIndex, token.text.length)
-                                    }
-                                  }}
-                                  title={`Nhấp trái để chọn từ "${token.text}" • Chuột phải để xem nghĩa & lưu từ ❤️`}
-                                  className={`inline-block transition-all duration-100 rounded px-1 cursor-pointer select-none focus:outline-none ${
-                                    isCurrentPlaying
-                                      ? 'bg-primary text-primary-foreground font-bold shadow-md scale-105 ring-2 ring-primary/40 animate-pulse z-10'
-                                      : isFocused
-                                      ? 'bg-amber-500/25 text-amber-800 dark:text-amber-200 font-bold ring-2 ring-amber-500/50 shadow-xs z-10'
-                                      : 'hover:bg-primary/20 hover:text-primary active:scale-95 text-foreground'
-                                  } ${
-                                    isSaved
-                                      ? 'underline decoration-rose-500/80 decoration-wavy underline-offset-4'
-                                      : ''
-                                  }`}
-                                >
-                                  {token.text}
-                                </span>
-                              )
-                            })}
+                            {/* Dịch nằm ngay dưới dòng của câu tiếng Anh, chữ nghiêng và font bé hơn */}
+                            {showTranslation && line.translationText && (
+                              <p className="mt-0.5 text-xs sm:text-sm italic font-normal text-muted-foreground/85 dark:text-muted-foreground/75 leading-normal pl-0.5 select-text">
+                                {line.translationText}
+                              </p>
+                            )}
                           </div>
                         )
                       })}
                     </div>
                   </div>
 
-                  {/* Translation visible only in Steps 1-2 with Fixed Height & Scroll */}
-                  {mode.showTrans && parsedContent?.translation && (
-                    <div className="rounded-xl bg-muted/40 border border-border/40 p-4">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
-                        Bản Dịch Nghĩa (Tiếng Việt)
-                      </span>
-                      <div className="max-h-48 overflow-y-auto pr-2 scrollbar-thin">
-                        <p className="text-sm sm:text-base leading-relaxed text-muted-foreground whitespace-pre-line">
-                          {parsedContent.translation}
-                        </p>
+                  {/* Toàn bộ bản dịch tiếng Việt (có thể thu gọn/mở rộng) */}
+                  {parsedContent?.translation && (
+                    <details className="group rounded-xl bg-muted/30 border border-border/40 p-3 text-xs text-muted-foreground">
+                      <summary className="font-semibold cursor-pointer hover:text-foreground list-none flex items-center justify-between select-none">
+                        <span className="flex items-center gap-1.5">
+                          <Languages className="h-3.5 w-3.5 text-primary" />
+                          Xem toàn văn bản dịch tiếng Việt
+                        </span>
+                        <span className="text-[10px] text-muted-foreground group-open:rotate-180 transition-transform">
+                          ▼
+                        </span>
+                      </summary>
+                      <div className="mt-2.5 pt-2.5 border-t border-border/40 max-h-48 overflow-y-auto pr-2 scrollbar-thin text-xs sm:text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+                        {parsedContent.translation}
                       </div>
-                    </div>
+                    </details>
                   )}
 
                   {/* Key vocabulary words */}
