@@ -37,6 +37,36 @@ export interface FinanceGoal {
   created_at: string
 }
 
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE'
+
+export interface TaskDefinitionItem {
+  id: string
+  task_id: string
+  title: string
+  is_completed: boolean
+  created_at: string
+  completed_at: string | null
+}
+
+export interface TodoIdea {
+  id: string
+  user_id: string
+  title: string
+  note: string | null
+  status: 'IDEA' | 'CONVERTED' | 'DISCARDED'
+  created_at: string
+  converted_task_id: string | null
+}
+
+export interface TodoDailyReview {
+  id: string
+  user_id: string
+  date: string
+  accomplishments: string | null
+  carry_over_notes: string | null
+  created_at: string
+}
+
 export interface Task {
   id: string
   user_id: string
@@ -50,6 +80,15 @@ export interface Task {
   category: string | null
   created_at: string
   is_completed?: boolean
+
+  status: TaskStatus
+  is_today_priority: boolean
+  started_at: string | null
+  completed_at: string | null
+  success_criteria: string | null
+  review_note: string | null
+  reviewed_at: string | null
+  definition_items?: TaskDefinitionItem[]
 }
 
 export interface TaskCompletion {

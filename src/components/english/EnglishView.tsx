@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -58,6 +58,7 @@ import {
   type UpdateLessonFormValues,
 } from '@/schemas/englishSchema'
 import type { EnglishLessonContent } from '@/types'
+import { DailyVocabView } from './DailyVocabView'
 
 interface TextToken {
   text: string
@@ -74,7 +75,11 @@ interface LineData {
   tokens: TextToken[]
 }
 
-export function EnglishView() {
+interface EnglishViewProps {
+  initialTab?: 'daily_vocab' | 'study' | 'list' | 'vocabulary'
+}
+
+export function EnglishView({ initialTab }: EnglishViewProps = {}) {
   const { t } = useI18n()
   const confirm = useConfirm()
   const {
@@ -131,6 +136,12 @@ export function EnglishView() {
   const [vocabSearch, setVocabSearch] = useState('')
   // Active Translation Toggle state (Chế độ dịch chủ động: Bật/Tắt)
   const [showTranslation, setShowTranslation] = useState<boolean>(true)
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab, setActiveTab])
 
   // React Hook Form for Creating New Lesson
   const {
@@ -319,22 +330,45 @@ export function EnglishView() {
         <div>
           <div className="flex items-center space-x-2">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              {t.english.title}
+              {activeTab === 'daily_vocab'
+                ? 'Học 20 Từ Vựng Mỗi Ngày'
+                : activeTab === 'vocabulary'
+                  ? 'Sổ Từ Vựng Cá Nhân'
+                  : activeTab === 'list'
+                    ? 'Kho Bài Học Tiếng Anh'
+                    : t.english.title}
             </h1>
-            {isTodayCompleted && (
+            {isTodayCompleted && activeTab === 'study' && (
               <Badge variant="success" className="text-xs">
                 Đã đạt hôm nay ({todaySession?.listening_score}/20đ)
               </Badge>
             )}
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {currentLesson?.title} • {currentLesson?.level} • {currentLesson?.topic}
+            {activeTab === 'daily_vocab'
+              ? 'Học 20 từ mới mỗi ngày kèm bài kiểm tra 20 câu để ghi nhớ sâu'
+              : activeTab === 'vocabulary'
+                ? `Danh sách ${savedWords.length} từ vựng bạn đã lưu để ôn tập`
+                : activeTab === 'list'
+                  ? 'Tất cả các bài học luyện nghe có sẵn'
+                  : `${currentLesson?.title} • ${currentLesson?.level} • ${currentLesson?.topic}`}
           </p>
         </div>
 
-        {/* View Switcher: Luyện nghe vs Danh sách bài vs Sổ từ vựng */}
+        {/* View Switcher: 20 Từ mỗi ngày vs Luyện nghe vs Danh sách bài vs Sổ từ vựng */}
         <div className="flex items-center space-x-2 flex-wrap gap-y-2">
           <div className="inline-flex rounded-xl bg-muted p-1 border border-border/60">
+            <button
+              onClick={() => setActiveTab('daily_vocab')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'daily_vocab'
+                  ? 'bg-background text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5 inline mr-1 text-amber-500" />
+              20 Từ mỗi ngày
+            </button>
             <button
               onClick={() => setActiveTab('study')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
@@ -383,16 +417,23 @@ export function EnglishView() {
             </Button>
           )}
 
-          <Button
-            size="sm"
-            onClick={() => setIsAddLessonOpen(true)}
-            className="text-xs h-8"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Tạo bài mới
-          </Button>
+          {activeTab !== 'daily_vocab' && (
+            <Button
+              size="sm"
+              onClick={() => setIsAddLessonOpen(true)}
+              className="text-xs h-8"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Tạo bài mới
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* ================= TAB 0: 20 TỪ MỖI NGÀY & BÀI KIỂM TRA ================= */}
+      {activeTab === 'daily_vocab' && (
+        <DailyVocabView onNavigateToSavedVocab={() => setActiveTab('vocabulary')} />
+      )}
 
       {/* ================= TAB 1: DANH SÁCH BÀI HỌC (CATALOG VIEW) ================= */}
       {activeTab === 'list' && (

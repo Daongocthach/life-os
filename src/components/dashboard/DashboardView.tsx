@@ -10,6 +10,10 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
+  CloudSun,
+  Radio,
+  Sparkles,
+  Headphones,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -260,20 +264,59 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
               <p className="text-xs text-foreground font-medium truncate">
                 {english.currentLesson?.title || 'Bài luyện nghe hôm nay'}
               </p>
-              <Button
-                variant={english.isDone ? 'outline' : 'default'}
-                size="sm"
-                onClick={() => onNavigate('english')}
-                className="w-full text-xs h-8"
-              >
-                {english.isDone ? 'Xem lại bài học' : 'Luyện nghe 7 lần ngay'}
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onNavigate('vocabulary')}
+                  className="w-full text-[11px] h-8 font-semibold shadow-xs"
+                >
+                  <Sparkles className="h-3 w-3 mr-1 text-amber-300" />
+                  20 Từ & Thi
+                </Button>
+                <Button
+                  variant={english.isDone ? 'outline' : 'secondary'}
+                  size="sm"
+                  onClick={() => onNavigate('english')}
+                  className="w-full text-[11px] h-8"
+                >
+                  <Headphones className="h-3 w-3 mr-1 text-primary" />
+                  {english.isDone ? 'Xem lại' : 'Luyện nghe'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* 3. Today's Menu */}
+      {/* 3. Live Traffic & Weather Monitor Preview */}
+      <Card className="border-border/80 bg-gradient-to-r from-blue-500/5 via-primary/5 to-transparent">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Radio className="h-4 w-4 text-blue-500 animate-pulse" />
+            Giám Sát Giao Thông & Thời Tiết (Dĩ An • Thủ Đức • Tân Uyên)
+          </CardTitle>
+          <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-500 font-mono">
+            LIVE
+          </Badge>
+        </CardHeader>
+        <CardContent className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
+            Theo dõi camera giao thông công cộng và dữ liệu thời tiết thực tế tại 3 điểm cầu kết nối: Dĩ An, Thủ Đức và Tân Uyên.
+          </p>
+          <Button
+            size="sm"
+            onClick={() => onNavigate('monitor')}
+            className="text-xs h-8 px-3 rounded-xl flex-shrink-0"
+          >
+            <CloudSun className="h-3.5 w-3.5 mr-1.5" />
+            Mở bảng giám sát
+            <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* 4. Today's Menu */}
       <Card className="border-border/80">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">

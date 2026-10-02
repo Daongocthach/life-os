@@ -9,6 +9,7 @@ import { EnglishView } from '@/components/english/EnglishView'
 import { WorkoutView } from '@/components/workout/WorkoutView'
 import { MealsView } from '@/components/meals/MealsView'
 import { TasksView } from '@/components/tasks/TasksView'
+import { MonitorView } from '@/components/monitor/MonitorView'
 import { LoginView } from '@/components/auth/LoginView'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
@@ -54,10 +55,12 @@ export function App() {
         <main className="flex-1 max-w-5xl w-full mx-auto py-6 px-4 sm:px-8">
           {currentTab === 'dashboard' && <DashboardView onNavigate={setCurrentTab} />}
           {currentTab === 'finance' && <FinanceView />}
+          {currentTab === 'vocabulary' && <EnglishView initialTab="daily_vocab" />}
           {currentTab === 'english' && <EnglishView />}
           {currentTab === 'workout' && <WorkoutView />}
           {currentTab === 'meals' && <MealsView />}
           {currentTab === 'tasks' && <TasksView />}
+          {currentTab === 'monitor' && <MonitorView />}
         </main>
 
         {/* Mobile Bottom Navigation (Hidden on md+) */}

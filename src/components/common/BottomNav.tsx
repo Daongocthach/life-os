@@ -5,11 +5,12 @@ import {
   Dumbbell,
   Utensils,
   CheckSquare,
+  Radio,
 } from 'lucide-react'
 import { useI18n } from '@/hooks/useI18n'
 import { cn } from '@/lib/utils'
 
-export type NavTab = 'dashboard' | 'finance' | 'english' | 'workout' | 'meals' | 'tasks'
+export type NavTab = 'dashboard' | 'finance' | 'english' | 'vocabulary' | 'workout' | 'meals' | 'tasks' | 'monitor'
 
 interface BottomNavProps {
   currentTab: NavTab
@@ -22,10 +23,11 @@ export function BottomNav({ currentTab, onSelectTab }: BottomNavProps) {
   const tabs = [
     { id: 'dashboard' as NavTab, label: t.common.dashboard, icon: LayoutDashboard },
     { id: 'finance' as NavTab, label: t.common.finance, icon: Wallet },
+    { id: 'tasks' as NavTab, label: t.common.tasks, icon: CheckSquare },
+    { id: 'monitor' as NavTab, label: t.common.monitor || 'Giám sát', icon: Radio },
     { id: 'english' as NavTab, label: t.common.english, icon: BookOpen },
     { id: 'workout' as NavTab, label: t.common.workout, icon: Dumbbell },
     { id: 'meals' as NavTab, label: t.common.meals, icon: Utensils },
-    { id: 'tasks' as NavTab, label: t.common.tasks, icon: CheckSquare },
   ]
 
   return (
