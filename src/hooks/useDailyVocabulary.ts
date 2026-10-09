@@ -21,6 +21,7 @@ const LOCAL_STORAGE_KEY = 'lifeos_daily_vocab_progress'
 
 interface StoredProgress {
   selectedDay: number
+  dailyGoal?: number
   completedDays: Record<number, DayProgress>
 }
 
@@ -28,13 +29,19 @@ function loadStoredProgress(): StoredProgress {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (raw) {
-      return JSON.parse(raw)
+      const parsed = JSON.parse(raw)
+      return {
+        selectedDay: parsed.selectedDay || getTodayDayIndex(),
+        dailyGoal: parsed.dailyGoal || 50,
+        completedDays: parsed.completedDays || {},
+      }
     }
   } catch (e) {
     console.error('Failed to load daily vocab progress', e)
   }
   return {
     selectedDay: getTodayDayIndex(),
+    dailyGoal: 50,
     completedDays: {},
   }
 }
@@ -57,11 +64,12 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr
 }
 
-// Generate 20 quiz questions tailored for the 20 words of the day
+// Generate quiz questions dynamically distributed across question types
 function generateQuizQuestions(words: DailyVocabWord[]): DailyQuizQuestion[] {
   if (!words || words.length === 0) return []
 
   const questions: DailyQuizQuestion[] = []
+  const quarter = Math.max(1, Math.floor(words.length / 4))
 
   words.forEach((targetWord, index) => {
     // Other words from the pack for distractors
@@ -70,11 +78,10 @@ function generateQuizQuestions(words: DailyVocabWord[]): DailyQuizQuestion[] {
     const distractorWords = shuffledOthers.slice(0, 3)
 
     // Assign question type based on index to ensure balanced distribution
-    // 0-4: en_to_vi, 5-9: vi_to_en, 10-14: fill_in, 15-19: listening
     let type: 'en_to_vi' | 'vi_to_en' | 'fill_in' | 'listening' = 'en_to_vi'
-    if (index >= 5 && index < 10) type = 'vi_to_en'
-    else if (index >= 10 && index < 15) type = 'fill_in'
-    else if (index >= 15) type = 'listening'
+    if (index >= quarter && index < quarter * 2) type = 'vi_to_en'
+    else if (index >= quarter * 2 && index < quarter * 3) type = 'fill_in'
+    else if (index >= quarter * 3) type = 'listening'
 
     let prompt = ''
     let contextSentence: string | undefined = undefined
@@ -157,9 +164,22 @@ export function useDailyVocabulary() {
   const [storedData, setStoredData] = useState<StoredProgress>(loadStoredProgress)
   const [selectedDay, setSelectedDay] = useState<number>(() => storedData.selectedDay || 1)
 
-  // Current pack (20 words)
+  // Goal state (20, 30, 50 words per day - default 50 for TOEIC 850+ bootcamp)
+  const [dailyGoal, setDailyGoal] = useState<number>(() => storedData.dailyGoal || 50)
+
+  const handleSetDailyGoal = useCallback((goal: number) => {
+    setDailyGoal(goal)
+    setCardIndex(0)
+    setStoredData((prev) => {
+      const nextState = { ...prev, dailyGoal: goal }
+      saveStoredProgress(nextState)
+      return nextState
+    })
+  }, [])
+
+  // Current pack and sliced words based on dailyGoal
   const currentPack = useMemo(() => getDailyVocabPack(selectedDay), [selectedDay])
-  const words = currentPack.words
+  const words = useMemo(() => currentPack.words.slice(0, dailyGoal), [currentPack, dailyGoal])
 
   // Flashcards state
   const [cardIndex, setCardIndex] = useState<number>(0)
@@ -379,7 +399,7 @@ export function useDailyVocabulary() {
     const playNext = (index: number) => {
       if (index >= words.length) {
         setIsAutoPlaying(false)
-        toast.success('Đã hoàn thành lượt nghe 20 từ vựng!')
+        toast.success(`Đã hoàn thành lượt nghe ${words.length} từ vựng!`)
         return
       }
 
@@ -493,9 +513,9 @@ export function useDailyVocabulary() {
           user_id: user?.id || '94f8ff1b-439c-43b1-b9f0-5a970754da31',
           study_date: todayStr,
           duration_minutes: Math.max(1, Math.round(timeSpentSeconds / 60)),
-          words_reviewed: 20,
+          words_reviewed: words.length,
           score: percentage,
-          note: `Hoàn thành bài kiểm tra 20 từ vựng Ngày ${selectedDay} (${score}/${total} điểm)`,
+          note: `Hoàn thành bài kiểm tra ${words.length} từ vựng Ngày ${selectedDay} (${score}/${total} điểm)`,
         },
       ])
       toast.success(
@@ -506,7 +526,7 @@ export function useDailyVocabulary() {
     } catch (e) {
       console.error('Failed to log study session to Supabase', e)
     }
-  }, [quizQuestions, userAnswers, quizStartTime, selectedDay, todayStr, user?.id])
+  }, [quizQuestions, userAnswers, quizStartTime, selectedDay, todayStr, user?.id, words.length])
 
   // Reset/Restart quiz
   const restartQuiz = useCallback(() => {
@@ -525,6 +545,8 @@ export function useDailyVocabulary() {
   return {
     selectedDay,
     setSelectedDay: handleSelectDay,
+    dailyGoal,
+    setDailyGoal: handleSetDailyGoal,
     currentPack,
     words,
     // Flashcard

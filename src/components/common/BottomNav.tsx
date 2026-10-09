@@ -2,15 +2,12 @@ import {
   LayoutDashboard,
   Wallet,
   BookOpen,
-  Dumbbell,
-  Utensils,
   CheckSquare,
-  Radio,
 } from 'lucide-react'
 import { useI18n } from '@/hooks/useI18n'
 import { cn } from '@/lib/utils'
 
-export type NavTab = 'dashboard' | 'finance' | 'english' | 'vocabulary' | 'workout' | 'meals' | 'tasks' | 'monitor'
+export type NavTab = 'dashboard' | 'finance' | 'english' | 'vocabulary' | 'tasks'
 
 interface BottomNavProps {
   currentTab: NavTab
@@ -24,10 +21,7 @@ export function BottomNav({ currentTab, onSelectTab }: BottomNavProps) {
     { id: 'dashboard' as NavTab, label: t.common.dashboard, icon: LayoutDashboard },
     { id: 'finance' as NavTab, label: t.common.finance, icon: Wallet },
     { id: 'tasks' as NavTab, label: t.common.tasks, icon: CheckSquare },
-    { id: 'monitor' as NavTab, label: t.common.monitor || 'Giám sát', icon: Radio },
     { id: 'english' as NavTab, label: t.common.english, icon: BookOpen },
-    { id: 'workout' as NavTab, label: t.common.workout, icon: Dumbbell },
-    { id: 'meals' as NavTab, label: t.common.meals, icon: Utensils },
   ]
 
   return (
@@ -35,7 +29,7 @@ export function BottomNav({ currentTab, onSelectTab }: BottomNavProps) {
       <div className="container flex h-16 max-w-lg items-center justify-around px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon
-          const isActive = currentTab === tab.id
+          const isActive = currentTab === tab.id || (tab.id === 'english' && currentTab === 'vocabulary')
           return (
             <button
               key={tab.id}

@@ -2,8 +2,6 @@ import {
   LayoutDashboard,
   Wallet,
   BookOpen,
-  Dumbbell,
-  Utensils,
   CheckSquare,
   Globe,
   Sun,
@@ -11,7 +9,6 @@ import {
   LogOut,
   Eye,
   EyeOff,
-  Radio,
   Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -40,9 +37,6 @@ export function Sidebar({ currentTab, onSelectTab }: SidebarProps) {
     { id: 'tasks' as NavTab, label: t.common.tasks, icon: CheckSquare },
     { id: 'vocabulary' as NavTab, label: 'Từ vựng (20 từ/ngày)', icon: Sparkles },
     { id: 'english' as NavTab, label: t.common.english, icon: BookOpen },
-    { id: 'workout' as NavTab, label: t.common.workout, icon: Dumbbell },
-    { id: 'meals' as NavTab, label: t.common.meals, icon: Utensils },
-    { id: 'monitor' as NavTab, label: t.common.monitor || 'Giám sát', icon: Radio },
   ]
 
   return (

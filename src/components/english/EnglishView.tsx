@@ -26,6 +26,9 @@ import {
   Search,
   ExternalLink,
   Languages,
+  ArrowRight,
+  X,
+  Database,
 } from 'lucide-react'
 
 function YoutubeIcon({ className = 'h-4 w-4' }: { className?: string }) {
@@ -59,6 +62,7 @@ import {
 } from '@/schemas/englishSchema'
 import type { EnglishLessonContent } from '@/types'
 import { DailyVocabView } from './DailyVocabView'
+import { ToeicWordBankView } from './ToeicWordBankView'
 
 interface TextToken {
   text: string
@@ -76,7 +80,7 @@ interface LineData {
 }
 
 interface EnglishViewProps {
-  initialTab?: 'daily_vocab' | 'study' | 'list' | 'vocabulary'
+  initialTab?: 'daily_vocab' | 'toeic_bank' | 'study' | 'list' | 'vocabulary'
 }
 
 export function EnglishView({ initialTab }: EnglishViewProps = {}) {
@@ -136,6 +140,13 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
   const [vocabSearch, setVocabSearch] = useState('')
   // Active Translation Toggle state (Chế độ dịch chủ động: Bật/Tắt)
   const [showTranslation, setShowTranslation] = useState<boolean>(true)
+  // Interactive Word Inspector for mobile and quick desktop lookup
+  const [selectedTokenInfo, setSelectedTokenInfo] = useState<{
+    word: string
+    meaning: string
+    startIndex: number
+    length: number
+  } | null>(null)
 
   useEffect(() => {
     if (initialTab) {
@@ -319,8 +330,24 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
     const found = parsedContent?.words?.find(
       ([w]) => w.toLowerCase() === cleanWord || cleanWord.includes(w.toLowerCase())
     )
-    const meaning = found ? found[1] : 'Từ vựng trong bài hát'
+    const meaning = found ? found[1] : 'Từ vựng trong bài đọc'
     openContextMenu(e, token.text, meaning)
+  }
+
+  // Left click / Tap handler for any word: focuses position & shows Word Inspector
+  const handleTokenClick = (token: TextToken) => {
+    setFocusedWord(token.startIndex, token.text.length)
+    const cleanWord = token.text.toLowerCase().replace(/^[^\w]+|[^\w]+$/g, '')
+    const found = parsedContent?.words?.find(
+      ([w]) => w.toLowerCase() === cleanWord || cleanWord.includes(w.toLowerCase())
+    )
+    const meaning = found ? found[1] : 'Từ vựng trong bài đọc'
+    setSelectedTokenInfo({
+      word: token.text,
+      meaning,
+      startIndex: token.startIndex,
+      length: token.text.length,
+    })
   }
 
   return (
@@ -331,12 +358,14 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
           <div className="flex items-center space-x-2">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               {activeTab === 'daily_vocab'
-                ? 'Học 20 Từ Vựng Mỗi Ngày'
-                : activeTab === 'vocabulary'
-                  ? 'Sổ Từ Vựng Cá Nhân'
-                  : activeTab === 'list'
-                    ? 'Kho Bài Học Tiếng Anh'
-                    : t.english.title}
+                ? 'Học Từ Vựng Mỗi Ngày'
+                : activeTab === 'toeic_bank'
+                  ? 'Kho 2.000 Từ Nâng Cao TOEIC'
+                  : activeTab === 'vocabulary'
+                    ? 'Sổ Từ Vựng Cá Nhân'
+                    : activeTab === 'list'
+                      ? 'Kho Bài Học Tiếng Anh'
+                      : t.english.title}
             </h1>
             {isTodayCompleted && activeTab === 'study' && (
               <Badge variant="success" className="text-xs">
@@ -346,18 +375,20 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             {activeTab === 'daily_vocab'
-              ? 'Học 20 từ mới mỗi ngày kèm bài kiểm tra 20 câu để ghi nhớ sâu'
-              : activeTab === 'vocabulary'
-                ? `Danh sách ${savedWords.length} từ vựng bạn đã lưu để ôn tập`
-                : activeTab === 'list'
-                  ? 'Tất cả các bài học luyện nghe có sẵn'
-                  : `${currentLesson?.title} • ${currentLesson?.level} • ${currentLesson?.topic}`}
+              ? 'Học từ mới mỗi ngày kèm bài kiểm tra để ghi nhớ sâu'
+              : activeTab === 'toeic_bank'
+                ? 'Bộ từ vựng chuyên sâu trên Supabase: Nhập nghĩa, trả lời cụm từ & thêm vào Flashcard'
+                : activeTab === 'vocabulary'
+                  ? `Danh sách ${savedWords.length} từ vựng bạn đã lưu để ôn tập`
+                  : activeTab === 'list'
+                    ? 'Tất cả các bài học luyện nghe có sẵn'
+                    : `${currentLesson?.title} • ${currentLesson?.level} • ${currentLesson?.topic}`}
           </p>
         </div>
 
-        {/* View Switcher: 20 Từ mỗi ngày vs Luyện nghe vs Danh sách bài vs Sổ từ vựng */}
-        <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-          <div className="inline-flex rounded-xl bg-muted p-1 border border-border/60">
+        {/* View Switcher: Từ mỗi ngày vs Kho 2000 từ vs Luyện nghe vs Danh sách bài vs Sổ từ vựng */}
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
+          <div className="inline-flex rounded-xl bg-muted p-1 border border-border/60 shrink-0">
             <button
               onClick={() => setActiveTab('daily_vocab')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
@@ -367,7 +398,18 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
               }`}
             >
               <Sparkles className="h-3.5 w-3.5 inline mr-1 text-amber-500" />
-              20 Từ mỗi ngày
+              Từ vựng mỗi ngày
+            </button>
+            <button
+              onClick={() => setActiveTab('toeic_bank')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'toeic_bank'
+                  ? 'bg-background text-foreground shadow-xs font-bold'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Database className="h-3.5 w-3.5 inline mr-1 text-primary" />
+              Kho 2000 Từ
             </button>
             <button
               onClick={() => setActiveTab('study')}
@@ -400,7 +442,7 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
               }`}
             >
               <Heart className="h-3.5 w-3.5 inline mr-1 text-rose-500 fill-rose-500" />
-              Sổ từ vựng ({savedWords.length})
+              Sổ từ ({savedWords.length})
             </button>
           </div>
 
@@ -430,9 +472,14 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
         </div>
       </div>
 
-      {/* ================= TAB 0: 20 TỪ MỖI NGÀY & BÀI KIỂM TRA ================= */}
+      {/* ================= TAB 0: TỪ VỰNG MỖI NGÀY ================= */}
       {activeTab === 'daily_vocab' && (
         <DailyVocabView onNavigateToSavedVocab={() => setActiveTab('vocabulary')} />
+      )}
+
+      {/* ================= TAB 0.5: KHO 2000 TỪ TOEIC (SUPABASE) ================= */}
+      {activeTab === 'toeic_bank' && (
+        <ToeicWordBankView />
       )}
 
       {/* ================= TAB 1: DANH SÁCH BÀI HỌC (CATALOG VIEW) ================= */}
@@ -826,15 +873,15 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
                                     key={tIdx}
                                     tabIndex={0}
                                     role="button"
-                                    onClick={() => setFocusedWord(token.startIndex, token.text.length)}
+                                    onClick={() => handleTokenClick(token)}
                                     onContextMenu={(e) => handleWordContextMenu(e, token)}
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault()
-                                        setFocusedWord(token.startIndex, token.text.length)
+                                        handleTokenClick(token)
                                       }
                                     }}
-                                    title={`Nhấp trái để chọn từ "${token.text}" • Chuột phải để xem nghĩa & lưu từ ❤️`}
+                                    title={`Bấm để chọn từ "${token.text}" • Chuột phải để lưu từ ❤️`}
                                     className={`inline-block transition-all duration-100 rounded px-1 cursor-pointer select-none focus:outline-none ${
                                       isCurrentPlaying
                                         ? 'bg-primary text-primary-foreground font-bold shadow-md scale-105 ring-2 ring-primary/40 animate-pulse z-10'
@@ -863,6 +910,82 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
                         )
                       })}
                     </div>
+
+                    {/* Interactive Word Inspector Card */}
+                    {selectedTokenInfo && (
+                      <div className="mt-3 p-3 rounded-xl border border-primary/30 bg-primary/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                            <Volume2 className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-foreground capitalize truncate">
+                                {selectedTokenInfo.word}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                Đang chọn
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                              {selectedTokenInfo.meaning}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => playSpeech(selectedTokenInfo.word)}
+                            className="text-xs h-7.5 px-2.5 gap-1"
+                            title="Phát âm từ này"
+                          >
+                            <Volume2 className="h-3.5 w-3.5 text-primary" />
+                            Phát âm
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={resumeOrPlayFromFocus}
+                            className="text-xs h-7.5 px-2.5 gap-1"
+                            title="Đọc toàn bài từ từ này trở đi"
+                          >
+                            <Play className="h-3 w-3 fill-current" />
+                            Đọc từ đây
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant={isWordSaved(selectedTokenInfo.word) ? 'outline' : 'default'}
+                            onClick={() => toggleSaveWord(selectedTokenInfo.word, selectedTokenInfo.meaning)}
+                            className={`text-xs h-7.5 px-2.5 gap-1 ${
+                              isWordSaved(selectedTokenInfo.word)
+                                ? 'text-rose-500 border-rose-500/30 hover:bg-rose-500/10'
+                                : 'bg-rose-600 hover:bg-rose-700 text-white'
+                            }`}
+                          >
+                            <Heart
+                              className={`h-3 w-3 ${
+                                isWordSaved(selectedTokenInfo.word) ? 'fill-rose-500' : 'fill-white'
+                              }`}
+                            />
+                            {isWordSaved(selectedTokenInfo.word) ? 'Đã lưu' : 'Lưu từ'}
+                          </Button>
+
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setSelectedTokenInfo(null)}
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+                            title="Đóng bảng tra từ"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Toàn bộ bản dịch tiếng Việt (có thể thu gọn/mở rộng) */}
@@ -979,9 +1102,11 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
                   className="text-xs sm:text-sm font-semibold shadow-md"
                 >
                   {currentStep < 7 ? (
-                    <>
-                      Hoàn thành lần {currentStep} $\rightarrow$ Qua lần {currentStep + 1}
-                    </>
+                    <span className="flex items-center">
+                      Hoàn thành lần {currentStep}
+                      <ArrowRight className="h-4 w-4 mx-1.5" />
+                      Qua lần {currentStep + 1}
+                    </span>
                   ) : (
                     <>
                       <Award className="h-4 w-4 mr-1.5" />

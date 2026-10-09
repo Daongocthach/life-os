@@ -4,16 +4,13 @@ import {
   Target,
   CheckCircle2,
   Circle,
-  Dumbbell,
   BookOpen,
-  Utensils,
   ArrowRight,
   Eye,
   EyeOff,
-  CloudSun,
-  Radio,
   Sparkles,
   Headphones,
+  GraduationCap,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,7 +28,7 @@ interface DashboardViewProps {
 
 export function DashboardView({ onNavigate }: DashboardViewProps) {
   const { t } = useI18n()
-  const { finance, tasks, workout, meals, english } = useDashboard()
+  const { finance, tasks, english } = useDashboard()
   const { isMasked, toggleMask, maskCurrency } = usePrivacy()
 
   return (
@@ -208,157 +205,74 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
           </CardContent>
         </Card>
 
-        {/* Daily Actions: Gym & English */}
-        <div className="space-y-4">
-          {/* Gym Today */}
-          <Card className="border-border/80">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Dumbbell className="h-4 w-4 text-primary" />
-                {t.dashboard.gymSession}
-              </CardTitle>
-              {workout.isDone ? (
-                <Badge variant="success" className="text-[10px]">
-                  {t.dashboard.gymDone}
-                </Badge>
-              ) : (
-                <Badge variant="warning" className="text-[10px]">
-                  {t.dashboard.gymPending}
-                </Badge>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-3 pt-1">
-              <p className="text-xs text-foreground font-medium">
-                {workout.todayRoutine?.session_name || 'Hôm nay: Nghỉ ngơi hoặc chưa lên lịch'}
-              </p>
-              {!workout.isDone && workout.todayRoutine && (
+        {/* 3. English Learning Hub Card */}
+        <Card className="border-border/80 bg-card/60 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary" />
+              {t.common.english} — Học tập mỗi ngày
+            </CardTitle>
+            {english.isDone ? (
+              <Badge variant="success" className="text-[10px]">
+                {t.dashboard.englishDone} ({english.todaySession?.listening_score}/20đ)
+              </Badge>
+            ) : (
+              <Badge variant="warning" className="text-[10px]">
+                {t.dashboard.englishPending}
+              </Badge>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4 pt-1">
+            {/* 2 Focus tracks */}
+            <div className="space-y-3">
+              {/* Track 1: 20 từ vựng mỗi ngày */}
+              <div className="p-3 rounded-xl border border-border/60 bg-muted/30 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <span className="text-xs font-bold text-foreground">20 Từ Vựng Hôm Nay</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                    Học flashcards kèm bài kiểm tra 20 câu để ghi nhớ sâu
+                  </p>
+                </div>
                 <Button
-                  size="sm"
-                  onClick={workout.checkinToday}
-                  className="w-full text-xs h-8"
-                >
-                  Đánh dấu đã tập xong
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* English Lesson Today */}
-          <Card className="border-border/80">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary" />
-                {t.dashboard.englishLesson}
-              </CardTitle>
-              {english.isDone ? (
-                <Badge variant="success" className="text-[10px]">
-                  {t.dashboard.englishDone} ({english.todaySession?.listening_score}/20)
-                </Badge>
-              ) : (
-                <Badge variant="warning" className="text-[10px]">
-                  {t.dashboard.englishPending}
-                </Badge>
-              )}
-            </CardHeader>
-            <CardContent className="space-y-3 pt-1">
-              <p className="text-xs text-foreground font-medium truncate">
-                {english.currentLesson?.title || 'Bài luyện nghe hôm nay'}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="default"
                   size="sm"
                   onClick={() => onNavigate('vocabulary')}
-                  className="w-full text-[11px] h-8 font-semibold shadow-xs"
+                  className="text-xs h-8 px-3 shrink-0 font-semibold shadow-xs"
                 >
-                  <Sparkles className="h-3 w-3 mr-1 text-amber-300" />
-                  20 Từ & Thi
+                  <GraduationCap className="h-3.5 w-3.5 mr-1" />
+                  Học & Thi 20 từ
                 </Button>
+              </div>
+
+              {/* Track 2: Luyện nghe Scaffolding 7 bước */}
+              <div className="p-3 rounded-xl border border-border/60 bg-muted/30 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Headphones className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-xs font-bold text-foreground truncate">
+                      {english.currentLesson?.title || 'Luyện nghe 7 bước'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Tiến độ: Lần nghe {english.currentStep || 1} / 7
+                  </p>
+                </div>
                 <Button
                   variant={english.isDone ? 'outline' : 'secondary'}
                   size="sm"
                   onClick={() => onNavigate('english')}
-                  className="w-full text-[11px] h-8"
+                  className="text-xs h-8 px-3 shrink-0"
                 >
-                  <Headphones className="h-3 w-3 mr-1 text-primary" />
-                  {english.isDone ? 'Xem lại' : 'Luyện nghe'}
+                  {english.isDone ? 'Xem lại bài' : 'Tiếp tục nghe'}
+                  <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* 3. Live Traffic & Weather Monitor Preview */}
-      <Card className="border-border/80 bg-gradient-to-r from-blue-500/5 via-primary/5 to-transparent">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Radio className="h-4 w-4 text-blue-500 animate-pulse" />
-            Giám Sát Giao Thông & Thời Tiết (Dĩ An • Thủ Đức • Tân Uyên)
-          </CardTitle>
-          <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-500 font-mono">
-            LIVE
-          </Badge>
-        </CardHeader>
-        <CardContent className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-            Theo dõi camera giao thông công cộng và dữ liệu thời tiết thực tế tại 3 điểm cầu kết nối: Dĩ An, Thủ Đức và Tân Uyên.
-          </p>
-          <Button
-            size="sm"
-            onClick={() => onNavigate('monitor')}
-            className="text-xs h-8 px-3 rounded-xl flex-shrink-0"
-          >
-            <CloudSun className="h-3.5 w-3.5 mr-1.5" />
-            Mở bảng giám sát
-            <ArrowRight className="h-3 w-3 ml-1" />
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* 4. Today's Menu */}
-      <Card className="border-border/80">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Utensils className="h-4 w-4 text-primary" />
-            {t.dashboard.menuToday}
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onNavigate('meals')}
-            className="text-xs text-muted-foreground h-7"
-          >
-            Quản lý thực đơn <ArrowRight className="h-3 w-3 ml-1" />
-          </Button>
-        </CardHeader>
-        <CardContent className="pt-1">
-          {meals.todayMeals.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-3 text-center">
-              {t.dashboard.noMenuToday}
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {meals.todayMeals.map((dm) => (
-                <div
-                  key={dm.id}
-                  className="p-3 rounded-xl border border-border/50 bg-muted/30"
-                >
-                  <span className="text-[10px] font-semibold uppercase text-muted-foreground block">
-                    {dm.meal_type}
-                  </span>
-                  <span className="text-xs font-semibold text-foreground mt-0.5 block truncate">
-                    {dm.meal?.name || dm.note || 'Món ăn'}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground block mt-1">
-                    {dm.meal?.calories_kcal || 0} kcal
-                  </span>
-                </div>
-              ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

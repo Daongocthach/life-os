@@ -21,6 +21,7 @@ import {
   ListFilter,
   Layers,
   GraduationCap,
+  Target,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,6 +39,8 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
   const {
     selectedDay,
     setSelectedDay,
+    dailyGoal,
+    setDailyGoal,
     currentPack,
     words,
     // Flashcard
@@ -99,12 +102,18 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault()
         prevCard()
+      } else if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault()
+        if (currentWord) speak(currentWord.word)
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault()
+        if (currentWord) toggleMasterWord(currentWord.id)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeMode, isQuizActive, flipCard, nextCard, prevCard])
+  }, [activeMode, isQuizActive, flipCard, nextCard, prevCard, currentWord, speak, toggleMasterWord])
 
   // Filtered words for List view
   const filteredWords = words.filter((item) => {
@@ -129,10 +138,10 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
         <div className="p-4 sm:p-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <Badge variant="secondary" className="text-xs font-semibold px-2.5 py-0.5">
                   <Sparkles className="h-3 w-3 mr-1 text-amber-500" />
-                  Mỗi ngày 20 từ vựng
+                  Học {words.length} từ vựng
                 </Badge>
                 {selectedDay === todayIndex && (
                   <Badge variant="success" className="text-[10px] px-2 py-0.5">
@@ -145,9 +154,29 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                     className="text-[10px] px-2 py-0.5 flex items-center gap-1"
                   >
                     <CheckCircle2 className="h-3 w-3" />
-                    Đã kiểm tra: {currentProgress.quizScore}/{currentProgress.quizTotal} ({currentProgress.percentage}%)
+                    Đã kiểm tra: {currentProgress.quizScore}/{currentProgress.quizTotal || words.length} ({currentProgress.percentage}%)
                   </Badge>
                 )}
+
+                {/* Daily Goal Switcher: 20, 30, 50 words */}
+                <div className="inline-flex items-center gap-1 bg-muted/80 p-0.5 rounded-lg border border-border/60">
+                  <span className="text-[10px] font-semibold text-muted-foreground px-1.5 flex items-center gap-0.5">
+                    <Target className="h-3 w-3 text-primary" /> Mục tiêu:
+                  </span>
+                  {[20, 30, 50].map((goal) => (
+                    <button
+                      key={goal}
+                      onClick={() => setDailyGoal(goal)}
+                      className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
+                        dailyGoal === goal
+                          ? 'bg-primary text-primary-foreground shadow-xs'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-background/60'
+                      }`}
+                    >
+                      {goal} từ {goal === 50 && '🔥'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
@@ -162,7 +191,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
             {/* Daily stats summary */}
             <div className="flex items-center gap-3 bg-muted/60 p-3 rounded-xl border border-border/60 shrink-0">
               <div className="text-center px-2">
-                <span className="text-lg font-black text-foreground block">{masteredCount}/20</span>
+                <span className="text-lg font-black text-foreground block">{masteredCount}/{words.length}</span>
                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                   Đã thuộc
                 </span>
@@ -228,7 +257,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
             }`}
           >
             <BookOpen className="h-3.5 w-3.5" />
-            Học Flashcards (20 từ)
+            Học Flashcards ({words.length} từ)
           </button>
           <button
             onClick={() => {
@@ -259,10 +288,10 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
             }`}
           >
             <GraduationCap className="h-3.5 w-3.5" />
-            Bài kiểm tra 20 câu
+            Bài kiểm tra ({quizQuestions.length || words.length} câu)
             {currentProgress?.quizScore !== undefined && (
               <span className="ml-1 text-[10px] bg-background/20 px-1.5 py-0.2 rounded-full">
-                {currentProgress.quizScore}/20
+                {currentProgress.quizScore}/{currentProgress.quizTotal || words.length}
               </span>
             )}
           </button>
@@ -285,7 +314,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
               ) : (
                 <>
                   <Headphones className="h-3.5 w-3.5 text-primary" />
-                  Tự động đọc 20 từ
+                  Tự động đọc {words.length} từ
                 </>
               )}
             </Button>
@@ -319,132 +348,209 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
             </div>
           </div>
 
-          {/* Interactive 3D Flashcard */}
-          <div
-            onClick={flipCard}
-            className="cursor-pointer select-none relative min-h-[320px] sm:min-h-[340px] rounded-2xl border-2 border-border/80 bg-card p-6 sm:p-8 flex flex-col justify-between shadow-md hover:border-primary/50 transition-all group"
-          >
-            {/* Top Bar of the Card */}
-            <div className="flex items-center justify-between">
-              <Badge variant="outline" className="text-xs font-medium uppercase tracking-wider">
-                {currentWord.partOfSpeech}
-              </Badge>
+          {/* Interactive 3D Animated Flashcard */}
+          <div className="perspective-1000 w-full min-h-[360px] sm:min-h-[380px]">
+            <div
+              onClick={flipCard}
+              className={`cursor-pointer select-none relative w-full min-h-[360px] sm:min-h-[380px] rounded-2xl transform-style-3d transition-transform duration-500 shadow-md ${
+                isFlipped ? 'rotate-y-180' : ''
+              }`}
+            >
+              {/* FRONT FACE */}
+              <div className="absolute inset-0 backface-hidden rounded-2xl border-2 border-border/80 bg-card p-6 sm:p-8 flex flex-col justify-between hover:border-primary/50 transition-colors group">
+                {/* Top Bar of the Card */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
+                      {currentWord.partOfSpeech}
+                    </Badge>
+                    {masteredWordIds.has(currentWord.id) && (
+                      <Badge variant="success" className="text-[10px] px-2 py-0.5">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Đã thuộc
+                      </Badge>
+                    )}
+                  </div>
 
-              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                {/* Voice Pronounce */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => speak(currentWord.word)}
-                  className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary"
-                  title="Phát âm từ này (Anh - Mỹ)"
-                >
-                  <Volume2 className="h-5 w-5" />
-                </Button>
-
-                {/* Save to Notebook */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => toggleSaveNotebook(currentWord)}
-                  className="h-9 w-9 rounded-full hover:bg-rose-500/10 text-rose-500"
-                  title="Lưu vào Sổ từ vựng cá nhân"
-                >
-                  <Heart
-                    className={`h-5 w-5 ${
-                      isWordSavedInNotebook(currentWord.word) ? 'fill-rose-500 text-rose-500' : ''
-                    }`}
-                  />
-                </Button>
-              </div>
-            </div>
-
-            {/* Card Content: Front vs Back */}
-            {!isFlipped ? (
-              /* FRONT: Word, Phonetic, Topic */
-              <div className="text-center my-auto py-6">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight mb-2 group-hover:scale-105 transition-transform duration-200">
-                  {currentWord.word}
-                </h2>
-                <p className="text-base sm:text-lg text-primary font-mono tracking-wide font-medium">
-                  {currentWord.phonetic}
-                </p>
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <Badge variant="secondary" className="text-[11px]">
-                    {currentWord.topic}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground/70 mt-6 flex items-center justify-center gap-1">
-                  <RotateCcw className="h-3 w-3" />
-                  Chạm để lật xem nghĩa & câu ví dụ
-                </p>
-              </div>
-            ) : (
-              /* BACK: Vietnamese Meaning, Examples, Collocations */
-              <div className="my-auto py-2 space-y-4 animate-in fade-in duration-200">
-                <div className="text-center">
-                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                    Định nghĩa:
-                  </span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-0.5">
-                    {currentWord.meaning}
-                  </h3>
-                </div>
-
-                {/* Bilingual Example Box */}
-                <div className="bg-muted/60 p-3.5 rounded-xl border border-border/60 text-left space-y-1.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs sm:text-sm font-semibold text-foreground italic">
-                      "{currentWord.exampleEn}"
-                    </p>
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    {/* Voice Pronounce */}
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        speak(currentWord.exampleEn)
-                      }}
-                      className="h-6 w-6 shrink-0 text-primary"
-                      title="Phát âm câu ví dụ"
+                      onClick={() => speak(currentWord.word)}
+                      className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary"
+                      title="Phát âm từ này (Nhấn phím P)"
                     >
-                      <Volume2 className="h-3.5 w-3.5" />
+                      <Volume2 className="h-5 w-5" />
+                    </Button>
+
+                    {/* Save to Notebook */}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => toggleSaveNotebook(currentWord)}
+                      className="h-9 w-9 rounded-full hover:bg-rose-500/10 text-rose-500"
+                      title="Lưu vào Sổ từ vựng cá nhân"
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${
+                          isWordSavedInNotebook(currentWord.word) ? 'fill-rose-500 text-rose-500' : ''
+                        }`}
+                      />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">→ {currentWord.exampleVi}</p>
                 </div>
 
-                {/* Collocation */}
-                {currentWord.collocation && (
-                  <div className="text-xs text-center text-muted-foreground">
-                    <span className="font-semibold text-foreground">Cụm từ thường gặp: </span>
-                    <span className="font-mono text-primary">{currentWord.collocation}</span>
+                {/* FRONT Center: Word, Phonetic, Topic */}
+                <div className="text-center my-auto py-4">
+                  <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight mb-2 group-hover:scale-105 transition-transform duration-200">
+                    {currentWord.word}
+                  </h2>
+                  <p className="text-base sm:text-lg text-primary font-mono tracking-wide font-medium">
+                    {currentWord.phonetic}
+                  </p>
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <Badge variant="secondary" className="text-[11px]">
+                      {currentWord.topic}
+                    </Badge>
                   </div>
-                )}
+                  <p className="text-xs text-muted-foreground/80 mt-6 flex items-center justify-center gap-1.5 font-medium">
+                    <RotateCcw className="h-3.5 w-3.5 text-primary" />
+                    Bấm vào thẻ hoặc phím Space để lật xem nghĩa
+                  </p>
+                </div>
+
+                {/* FRONT Bottom Controls */}
+                <div
+                  className="flex items-center justify-between pt-3 border-t border-border/50 text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    size="sm"
+                    variant={masteredWordIds.has(currentWord.id) ? 'default' : 'outline'}
+                    onClick={() => toggleMasterWord(currentWord.id)}
+                    className={`text-xs h-8 gap-1.5 ${
+                      masteredWordIds.has(currentWord.id)
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : ''
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {masteredWordIds.has(currentWord.id) ? 'Đã thuộc từ này' : 'Đánh dấu đã thuộc (M)'}
+                  </Button>
+
+                  <span className="text-[11px] text-muted-foreground hidden sm:inline font-mono">
+                    Space: Lật • ←/→: Chuyển • P: Nghe
+                  </span>
+                </div>
               </div>
-            )}
 
-            {/* Bottom Card Controls */}
-            <div
-              className="flex items-center justify-between pt-3 border-t border-border/50 text-xs"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button
-                size="sm"
-                variant={masteredWordIds.has(currentWord.id) ? 'default' : 'outline'}
-                onClick={() => toggleMasterWord(currentWord.id)}
-                className={`text-xs h-8 gap-1.5 ${
-                  masteredWordIds.has(currentWord.id)
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : ''
-                }`}
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {masteredWordIds.has(currentWord.id) ? 'Đã thuộc từ này' : 'Đánh dấu đã thuộc'}
-              </Button>
+              {/* BACK FACE */}
+              <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 border-primary/40 bg-card p-6 sm:p-8 flex flex-col justify-between shadow-lg">
+                {/* BACK Top Bar */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs font-semibold">
+                      Định nghĩa & Ví dụ
+                    </Badge>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {currentWord.word} ({currentWord.partOfSpeech})
+                    </span>
+                  </div>
 
-              <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                Nhấn Space để lật • ← / → để chuyển
-              </span>
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => speak(currentWord.word)}
+                      className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary"
+                      title="Phát âm từ"
+                    >
+                      <Volume2 className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => toggleSaveNotebook(currentWord)}
+                      className="h-9 w-9 rounded-full hover:bg-rose-500/10 text-rose-500"
+                      title="Lưu sổ từ vựng"
+                    >
+                      <Heart
+                        className={`h-5 w-5 ${
+                          isWordSavedInNotebook(currentWord.word) ? 'fill-rose-500 text-rose-500' : ''
+                        }`}
+                      />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* BACK Center: Meaning & Examples */}
+                <div className="my-auto py-2 space-y-3.5">
+                  <div className="text-center">
+                    <span className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider block">
+                      Nghĩa tiếng Việt:
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-bold text-foreground mt-0.5">
+                      {currentWord.meaning}
+                    </h3>
+                  </div>
+
+                  {/* Bilingual Example Box */}
+                  <div className="bg-muted/60 p-3.5 rounded-xl border border-border/60 text-left space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-xs sm:text-sm font-semibold text-foreground italic">
+                        "{currentWord.exampleEn}"
+                      </p>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          speak(currentWord.exampleEn)
+                        }}
+                        className="h-6 w-6 shrink-0 text-primary"
+                        title="Phát âm câu ví dụ"
+                      >
+                        <Volume2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">→ {currentWord.exampleVi}</p>
+                  </div>
+
+                  {/* Collocation */}
+                  {currentWord.collocation && (
+                    <div className="text-xs text-center text-muted-foreground">
+                      <span className="font-semibold text-foreground">Cụm từ thường gặp: </span>
+                      <span className="font-mono text-primary font-medium">{currentWord.collocation}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* BACK Bottom Controls */}
+                <div
+                  className="flex items-center justify-between pt-3 border-t border-border/50 text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    size="sm"
+                    variant={masteredWordIds.has(currentWord.id) ? 'default' : 'outline'}
+                    onClick={() => toggleMasterWord(currentWord.id)}
+                    className={`text-xs h-8 gap-1.5 ${
+                      masteredWordIds.has(currentWord.id)
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : ''
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {masteredWordIds.has(currentWord.id) ? 'Đã thuộc từ này' : 'Đánh dấu đã thuộc (M)'}
+                  </Button>
+
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <RotateCcw className="h-3 w-3 text-primary" />
+                    Bấm để quay về mặt trước
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -488,7 +594,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
               Sẵn sàng kiểm tra kiến thức Ngày {selectedDay}?
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-              Làm ngay bài kiểm tra 20 câu trắc nghiệm cho 20 từ hôm nay để khắc sâu trí nhớ và lưu điểm số vào hệ thống.
+              Làm ngay bài kiểm tra {words.length} câu trắc nghiệm cho {words.length} từ hôm nay để khắc sâu trí nhớ và lưu điểm số vào hệ thống.
             </p>
             <Button
               size="sm"
@@ -499,7 +605,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
               className="mt-3 text-xs h-8.5 px-4 font-bold gap-1.5 shadow-sm"
             >
               <Award className="h-3.5 w-3.5" />
-              Bắt đầu bài kiểm tra ngay (20 câu)
+              Bắt đầu bài kiểm tra ngay ({words.length} câu)
             </Button>
           </Card>
         </div>
@@ -931,7 +1037,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                   Bài Kiểm Tra Từ Vựng - Ngày {selectedDay}
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                  Bộ đề gồm 20 câu hỏi trắc nghiệm kiểm tra độ hiểu sâu của bạn về 20 từ vựng hôm nay
+                  Bộ đề gồm {words.length} câu hỏi trắc nghiệm kiểm tra độ hiểu sâu của bạn về {words.length} từ vựng hôm nay
                   (Nghĩa, Câu ngữ cảnh và Luyện nghe phát âm).
                 </p>
               </div>
@@ -939,7 +1045,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-lg mx-auto text-left text-xs">
                 <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60">
                   <span className="text-muted-foreground block text-[10px]">Số câu hỏi:</span>
-                  <span className="font-bold text-foreground">20 câu</span>
+                  <span className="font-bold text-foreground">{words.length} câu</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60">
                   <span className="text-muted-foreground block text-[10px]">Thời lượng:</span>
@@ -947,7 +1053,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                 </div>
                 <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60">
                   <span className="text-muted-foreground block text-[10px]">Chuẩn đạt:</span>
-                  <span className="font-bold text-emerald-600">≥ 14/20 (70%)</span>
+                  <span className="font-bold text-emerald-600">≥ {Math.ceil(words.length * 0.7)}/{words.length} (70%)</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60">
                   <span className="text-muted-foreground block text-[10px]">Khen thưởng:</span>

@@ -35,7 +35,7 @@ export function useEnglishStudy() {
   const user = useAuthStore((state) => state.user)
   const todayStr = format(new Date(), 'yyyy-MM-dd')
 
-  const [activeTab, setActiveTab] = useState<'daily_vocab' | 'study' | 'list' | 'vocabulary'>('daily_vocab')
+  const [activeTab, setActiveTab] = useState<'daily_vocab' | 'toeic_bank' | 'study' | 'list' | 'vocabulary'>('daily_vocab')
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
   const [currentStep, setCurrentStep] = useState<number>(1) // 1 to 7
   const [isPlaying, setIsPlaying] = useState<boolean>(false)
