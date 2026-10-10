@@ -22,7 +22,12 @@ export interface DailyVocabPack {
   words: DailyVocabWord[]
 }
 
-export type QuizQuestionType = 'en_to_vi' | 'vi_to_en' | 'fill_in' | 'listening'
+export type QuizQuestionType = 'en_to_vi' | 'vi_to_en' | 'fill_in' | 'listening' | 'make_sentence'
+
+export interface UserSentenceAnswer {
+  sentenceEn: string
+  sentenceVi: string
+}
 
 export interface DailyQuizQuestion {
   id: string
@@ -34,6 +39,7 @@ export interface DailyQuizQuestion {
   options: string[]
   correctAnswer: string
   explanation: string
+  targetWord?: DailyVocabWord
 }
 
 export interface DailyQuizResult {
@@ -53,6 +59,11 @@ export interface DailyQuizResult {
     word: string
     explanation: string
   }[]
+  createdSentences?: {
+    word: string
+    sentenceEn: string
+    sentenceVi: string
+  }[]
 }
 
 export interface DayProgress {
@@ -61,4 +72,9 @@ export interface DayProgress {
   quizTotal?: number
   percentage?: number
   masteredWordIds: string[]
+  createdSentences?: {
+    word: string
+    sentenceEn: string
+    sentenceVi: string
+  }[]
 }

@@ -22,13 +22,16 @@ import {
   Layers,
   GraduationCap,
   Target,
+  PenTool,
+  FileEdit,
+  Lightbulb,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
-import { useDailyVocabulary } from '@/hooks/useDailyVocabulary'
+import { useDailyVocabulary, sentenceContainsWord } from '@/hooks/useDailyVocabulary'
 import type { DailyVocabWord } from '@/types/vocabulary'
 
 interface DailyVocabViewProps {
@@ -63,6 +66,9 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
     setCurrentQuizIndex,
     userAnswers,
     selectAnswer,
+    userSentences,
+    updateSentenceAnswer,
+    changeSentenceQuestionWord,
     submitQuiz,
     restartQuiz,
     quizSubmitted,
@@ -80,6 +86,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
   const [activeMode, setActiveMode] = useState<'flashcard' | 'list' | 'quiz'>('flashcard')
   const [listSearch, setListSearch] = useState<string>('')
   const [filterMastered, setFilterMastered] = useState<'all' | 'mastered' | 'unlearned'>('all')
+  const [showSentenceHint, setShowSentenceHint] = useState<boolean>(false)
 
   const currentWord: DailyVocabWord | undefined = words[cardIndex]
   const currentProgress = completedDays[selectedDay]
@@ -810,6 +817,46 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                 </div>
               </div>
 
+              {/* Review of Custom Created Sentences */}
+              {quizResult.createdSentences && quizResult.createdSentences.length > 0 && (
+                <div className="text-left space-y-2.5 pt-2">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <PenTool className="h-4 w-4 text-primary" />
+                    Câu tiếng Anh bạn đã tự đặt trong bài thi ({quizResult.createdSentences.length} câu):
+                  </h3>
+
+                  <div className="space-y-2.5">
+                    {quizResult.createdSentences.map((sent, sIdx) => (
+                      <div
+                        key={sIdx}
+                        className="p-3.5 rounded-xl border border-primary/30 bg-primary/5 text-xs space-y-1.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-bold text-foreground sm:text-sm">
+                            &quot;{sent.sentenceEn}&quot;
+                          </p>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => speak(sent.sentenceEn)}
+                            className="h-7 w-7 text-primary hover:bg-primary/10 shrink-0"
+                            title="Nghe phát âm câu vừa đặt"
+                          >
+                            <Volume2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <p className="text-muted-foreground font-medium">
+                          → Nghĩa: <span className="text-foreground font-semibold">{sent.sentenceVi}</span>
+                        </p>
+                        <Badge variant="secondary" className="text-[10px] mt-1 font-semibold">
+                          Từ vựng mục tiêu: {sent.word}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Review of incorrect answers */}
               {quizResult.wrongAnswers.length > 0 && (
                 <div className="text-left space-y-3 pt-2">
@@ -883,13 +930,28 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                       ? '🎧 Nghe chọn từ'
                       : currentQuestion.type === 'fill_in'
                         ? '✍️ Điền từ vào câu'
-                        : '🎯 Trắc nghiệm nghĩa'}
+                        : currentQuestion.type === 'make_sentence'
+                          ? '📝 Đặt câu & viết nghĩa'
+                          : '🎯 Trắc nghiệm nghĩa'}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span>
-                    Đã trả lời: {Object.keys(userAnswers).length}/{quizQuestions.length}
+                    Đã trả lời:{' '}
+                    {
+                      quizQuestions.filter((q, i) => {
+                        if (q.type === 'make_sentence') {
+                          const s = userSentences[i]
+                          return (
+                            (s?.sentenceEn?.trim().length || 0) >= 3 &&
+                            (s?.sentenceVi?.trim().length || 0) >= 2
+                          )
+                        }
+                        return userAnswers[i] !== undefined
+                      }).length
+                    }
+                    /{quizQuestions.length}
                   </span>
                   <Progress
                     value={((currentQuizIndex + 1) / quizQuestions.length) * 100}
@@ -899,14 +961,14 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
               </div>
 
               {/* Question Card */}
-              <Card className="p-6 sm:p-7 border-border/80 bg-card shadow-sm space-y-5">
+              <Card className="p-5 sm:p-7 border-border/80 bg-card shadow-sm space-y-5">
                 <div className="space-y-3">
                   <h3 className="text-base sm:text-lg font-bold text-foreground leading-snug">
                     {currentQuestion.prompt}
                   </h3>
 
                   {/* Context sentence for fill-in type */}
-                  {currentQuestion.contextSentence && (
+                  {currentQuestion.type === 'fill_in' && currentQuestion.contextSentence && (
                     <div className="p-3.5 rounded-xl bg-muted/60 border border-border/60 text-xs sm:text-sm font-medium text-foreground whitespace-pre-line">
                       {currentQuestion.contextSentence}
                     </div>
@@ -929,40 +991,200 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                   )}
                 </div>
 
-                {/* 4 Multiple Choice Options */}
-                <div className="grid grid-cols-1 gap-2.5 pt-2">
-                  {currentQuestion.options.map((opt, optIdx) => {
-                    const isSelected = userAnswers[currentQuizIndex] === opt
-                    const label = ['A', 'B', 'C', 'D'][optIdx]
-
-                    return (
-                      <button
-                        key={optIdx}
-                        onClick={() => selectAnswer(currentQuizIndex, opt)}
-                        className={`w-full text-left p-3.5 sm:p-4 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-center justify-between ${
-                          isSelected
-                            ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
-                            : 'border-border/70 hover:border-primary/40 bg-card hover:bg-muted/40 text-foreground'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span
-                            className={`h-6 w-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
-                              isSelected
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted text-muted-foreground'
-                            }`}
-                          >
-                            {label}
+                {/* Question Body: Type make_sentence vs Multiple Choice */}
+                {currentQuestion.type === 'make_sentence' ? (
+                  <div className="space-y-4 pt-1">
+                    {/* Target word display & selector */}
+                    <div className="p-4 rounded-2xl bg-muted/50 border border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                            {currentQuestion.targetWord?.word || currentQuestion.word}
                           </span>
-                          <span>{opt}</span>
+                          <span className="text-xs text-primary font-mono font-semibold">
+                            {currentQuestion.targetWord?.phonetic}
+                          </span>
+                          <Badge variant="outline" className="text-[10px] uppercase font-bold">
+                            {currentQuestion.targetWord?.partOfSpeech}
+                          </Badge>
                         </div>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">
+                          Nghĩa:{' '}
+                          <span className="text-foreground font-semibold">
+                            {currentQuestion.targetWord?.meaning}
+                          </span>
+                          {currentQuestion.targetWord?.collocation && (
+                            <span className="ml-2 text-primary font-mono text-xs">
+                              • Cụm: {currentQuestion.targetWord.collocation}
+                            </span>
+                          )}
+                        </p>
+                      </div>
 
-                        {isSelected && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                      <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => speak(currentQuestion.targetWord?.word || currentQuestion.word)}
+                          className="h-8.5 px-2.5 text-primary hover:bg-primary/10 gap-1 text-xs"
+                          title="Phát âm từ này"
+                        >
+                          <Volume2 className="h-4 w-4" />
+                          Nghe từ
+                        </Button>
+
+                        {/* Optional change word dropdown */}
+                        {words.length > 1 && (
+                          <select
+                            value={currentQuestion.wordId}
+                            onChange={(e) => {
+                              const selected = words.find((w) => w.id === e.target.value)
+                              if (selected) changeSentenceQuestionWord(currentQuizIndex, selected)
+                            }}
+                            className="text-xs bg-background border border-border/80 rounded-lg px-2 py-1.5 text-muted-foreground hover:text-foreground cursor-pointer focus:ring-1 focus:ring-primary max-w-[180px] truncate"
+                            title="Chọn từ khác để đặt câu"
+                          >
+                            {words.map((w) => (
+                              <option key={w.id} value={w.id}>
+                                Đổi từ: {w.word} ({w.meaning})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 1: Input English sentence */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between flex-wrap gap-1">
+                        <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <PenTool className="h-3.5 w-3.5 text-primary" />
+                          1. Đặt 1 câu tiếng Anh (phải chứa từ &quot;{currentQuestion.targetWord?.word || currentQuestion.word}&quot;):
+                        </label>
+                        {/* Word presence indicator badge */}
+                        {sentenceContainsWord(
+                          userSentences[currentQuizIndex]?.sentenceEn || '',
+                          currentQuestion.targetWord?.word || currentQuestion.word
+                        ) ? (
+                          <Badge variant="success" className="text-[10px] px-2 py-0.5 gap-1">
+                            <Check className="h-3 w-3" />
+                            Đã chứa từ &quot;{currentQuestion.targetWord?.word || currentQuestion.word}&quot;
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] px-2 py-0.5 text-amber-500 border-amber-500/40">
+                            Cần chứa từ &quot;{currentQuestion.targetWord?.word || currentQuestion.word}&quot;
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <textarea
+                          rows={2}
+                          value={userSentences[currentQuizIndex]?.sentenceEn || ''}
+                          onChange={(e) =>
+                            updateSentenceAnswer(
+                              currentQuizIndex,
+                              e.target.value,
+                              userSentences[currentQuizIndex]?.sentenceVi || ''
+                            )
+                          }
+                          placeholder={`Ví dụ: The company will ${currentQuestion.targetWord?.word || currentQuestion.word} the new policy next month.`}
+                          className="w-full text-xs sm:text-sm p-3 rounded-xl border border-border/80 bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none pr-10 font-medium"
+                        />
+                        {userSentences[currentQuizIndex]?.sentenceEn && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => speak(userSentences[currentQuizIndex].sentenceEn)}
+                            className="absolute right-2 top-2 h-7 w-7 text-primary hover:bg-primary/10"
+                            title="Nghe phát âm câu bạn vừa đặt"
+                          >
+                            <Volume2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Step 2: Input Vietnamese meaning */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <FileEdit className="h-3.5 w-3.5 text-primary" />
+                        2. Viết nghĩa tiếng Việt của câu bạn vừa đặt:
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={userSentences[currentQuizIndex]?.sentenceVi || ''}
+                        onChange={(e) =>
+                          updateSentenceAnswer(
+                            currentQuizIndex,
+                            userSentences[currentQuizIndex]?.sentenceEn || '',
+                            e.target.value
+                          )
+                        }
+                        placeholder="Ví dụ: Công ty sẽ triển khai chính sách mới vào tháng tới."
+                        className="w-full text-xs sm:text-sm p-3 rounded-xl border border-border/80 bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none font-medium"
+                      />
+                    </div>
+
+                    {/* Toggle Sample Example Sentence Hint */}
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowSentenceHint((prev) => !prev)}
+                        className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 font-semibold transition-colors"
+                      >
+                        <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                        {showSentenceHint ? 'Ẩn câu ví dụ gợi ý' : 'Bí ý tưởng? Bấm để xem câu ví dụ gợi ý mẫu'}
                       </button>
-                    )
-                  })}
-                </div>
+
+                      {showSentenceHint && currentQuestion.targetWord && (
+                        <div className="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-1 animate-in fade-in duration-200">
+                          <p className="font-semibold text-foreground italic">
+                            &quot;{currentQuestion.targetWord.exampleEn}&quot;
+                          </p>
+                          <p className="text-muted-foreground">
+                            → {currentQuestion.targetWord.exampleVi}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* 4 Multiple Choice Options */
+                  <div className="grid grid-cols-1 gap-2.5 pt-2">
+                    {currentQuestion.options.map((opt, optIdx) => {
+                      const isSelected = userAnswers[currentQuizIndex] === opt
+                      const label = ['A', 'B', 'C', 'D'][optIdx]
+
+                      return (
+                        <button
+                          key={optIdx}
+                          onClick={() => selectAnswer(currentQuizIndex, opt)}
+                          className={`w-full text-left p-3.5 sm:p-4 rounded-xl border text-xs sm:text-sm font-medium transition-all flex items-center justify-between ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                              : 'border-border/70 hover:border-primary/40 bg-card hover:bg-muted/40 text-foreground'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`h-6 w-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'bg-muted text-muted-foreground'
+                              }`}
+                            >
+                              {label}
+                            </span>
+                            <span>{opt}</span>
+                          </div>
+
+                          {isSelected && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {/* Question Navigation Controls */}
                 <div className="flex items-center justify-between pt-4 border-t border-border/50 gap-2">
@@ -970,7 +1192,10 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                     variant="outline"
                     size="sm"
                     disabled={currentQuizIndex === 0}
-                    onClick={() => setCurrentQuizIndex((prev) => Math.max(0, prev - 1))}
+                    onClick={() => {
+                      setCurrentQuizIndex((prev) => Math.max(0, prev - 1))
+                      setShowSentenceHint(false)
+                    }}
                     className="text-xs h-8.5"
                   >
                     <ChevronLeft className="h-3.5 w-3.5 mr-1" />
@@ -980,11 +1205,12 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                   {currentQuizIndex < quizQuestions.length - 1 ? (
                     <Button
                       size="sm"
-                      onClick={() =>
+                      onClick={() => {
                         setCurrentQuizIndex((prev) =>
                           Math.min(quizQuestions.length - 1, prev + 1)
                         )
-                      }
+                        setShowSentenceHint(false)
+                      }}
                       className="text-xs h-8.5 font-semibold"
                     >
                       Câu tiếp theo
@@ -1005,14 +1231,21 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
 
               {/* Quick Jump Question Grid */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none justify-center">
-                {quizQuestions.map((_, idx) => {
-                  const answered = userAnswers[idx] !== undefined
+                {quizQuestions.map((q, idx) => {
+                  const answered =
+                    q.type === 'make_sentence'
+                      ? (userSentences[idx]?.sentenceEn?.trim().length || 0) >= 3 &&
+                        (userSentences[idx]?.sentenceVi?.trim().length || 0) >= 2
+                      : userAnswers[idx] !== undefined
                   const isCurrent = idx === currentQuizIndex
 
                   return (
                     <button
                       key={idx}
-                      onClick={() => setCurrentQuizIndex(idx)}
+                      onClick={() => {
+                        setCurrentQuizIndex(idx)
+                        setShowSentenceHint(false)
+                      }}
                       className={`h-7 w-7 rounded-lg text-[11px] font-bold shrink-0 transition-all ${
                         isCurrent
                           ? 'ring-2 ring-primary ring-offset-2 bg-primary text-primary-foreground'
@@ -1020,8 +1253,9 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                             ? 'bg-muted text-foreground border border-border'
                             : 'bg-muted/40 text-muted-foreground/60 border border-border/30'
                       }`}
+                      title={q.type === 'make_sentence' ? 'Thử thách đặt câu' : `Câu ${idx + 1}`}
                     >
-                      {idx + 1}
+                      {q.type === 'make_sentence' ? '✍️' : idx + 1}
                     </button>
                   )
                 })}
@@ -1039,15 +1273,15 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                   Bài Kiểm Tra Từ Vựng - Ngày {selectedDay}
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                  Bộ đề gồm {words.length} câu hỏi trắc nghiệm kiểm tra độ hiểu sâu của bạn về {words.length} từ vựng hôm nay
-                  (Nghĩa, Câu ngữ cảnh và Luyện nghe phát âm).
+                  Bộ đề kiểm tra toàn diện gồm trắc nghiệm nghĩa, điền từ vào câu ngữ cảnh, luyện nghe phát âm và{' '}
+                  <span className="font-semibold text-foreground">thử thách tự đặt 1 câu tiếng Anh kèm viết nghĩa tiếng Việt</span>.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-lg mx-auto text-left text-xs">
                 <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60">
                   <span className="text-muted-foreground block text-[10px]">Số câu hỏi:</span>
-                  <span className="font-bold text-foreground">{words.length} câu</span>
+                  <span className="font-bold text-foreground">{words.length + 1} câu (kèm đặt câu)</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60">
                   <span className="text-muted-foreground block text-[10px]">Thời lượng:</span>
@@ -1055,7 +1289,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
                 </div>
                 <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60">
                   <span className="text-muted-foreground block text-[10px]">Chuẩn đạt:</span>
-                  <span className="font-bold text-emerald-600">≥ {Math.ceil(words.length * 0.7)}/{words.length} (70%)</span>
+                  <span className="font-bold text-emerald-600">≥ {Math.ceil((words.length + 1) * 0.7)}/{words.length + 1} (70%)</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-muted/60 border border-border/60">
                   <span className="text-muted-foreground block text-[10px]">Khen thưởng:</span>

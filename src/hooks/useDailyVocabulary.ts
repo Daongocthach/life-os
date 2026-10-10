@@ -14,8 +14,17 @@ import type {
   DailyQuizQuestion,
   DailyQuizResult,
   DayProgress,
+  UserSentenceAnswer,
 } from '@/types/vocabulary'
 import type { EnglishWord } from '@/types'
+
+export function sentenceContainsWord(sentence: string, word: string): boolean {
+  if (!sentence || !word) return false
+  const cleanSentence = sentence.toLowerCase()
+  const cleanWord = word.trim().toLowerCase()
+  const regex = new RegExp(`\\b${cleanWord}`, 'i')
+  return regex.test(cleanSentence) || cleanSentence.includes(cleanWord)
+}
 
 const LOCAL_STORAGE_KEY = 'lifeos_daily_vocab_progress'
 
@@ -149,8 +158,26 @@ function generateQuizQuestions(words: DailyVocabWord[]): DailyQuizQuestion[] {
       correctAnswer,
       options,
       explanation: `${targetWord.word} (${targetWord.phonetic} - ${targetWord.partOfSpeech}): ${targetWord.meaning}. Ví dụ: ${targetWord.exampleEn}`,
+      targetWord,
     })
   })
+
+  // Add 1 Sentence Creation Challenge Question (Thử thách tự đặt câu & dịch nghĩa)
+  if (words.length > 0) {
+    const sentenceTargetWord = words[0]
+    questions.push({
+      id: `q_sentence_${sentenceTargetWord.id}`,
+      wordId: sentenceTargetWord.id,
+      word: sentenceTargetWord.word,
+      type: 'make_sentence',
+      prompt: `✍️ Thử thách Đặt câu: Đặt 1 câu tiếng Anh có chứa từ "${sentenceTargetWord.word}" và viết nghĩa tiếng Việt của câu đó ra:`,
+      contextSentence: `Từ mục tiêu: "${sentenceTargetWord.word}" (${sentenceTargetWord.phonetic} • ${sentenceTargetWord.partOfSpeech}) — Nghĩa: "${sentenceTargetWord.meaning}"`,
+      options: [],
+      correctAnswer: sentenceTargetWord.word,
+      explanation: `Yêu cầu tự đặt 1 câu tiếng Anh có chứa từ "${sentenceTargetWord.word}" và viết nghĩa tiếng Việt của câu đó. Ví dụ mẫu: "${sentenceTargetWord.exampleEn}" → ${sentenceTargetWord.exampleVi}`,
+      targetWord: sentenceTargetWord,
+    })
+  }
 
   return questions
 }
@@ -196,6 +223,7 @@ export function useDailyVocabulary() {
   const [quizQuestions, setQuizQuestions] = useState<DailyQuizQuestion[]>([])
   const [currentQuizIndex, setCurrentQuizIndex] = useState<number>(0)
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({})
+  const [userSentences, setUserSentences] = useState<Record<number, UserSentenceAnswer>>({})
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false)
   const [quizResult, setQuizResult] = useState<DailyQuizResult | null>(null)
   const [quizStartTime, setQuizStartTime] = useState<number>(0)
@@ -328,6 +356,7 @@ export function useDailyVocabulary() {
     setQuizSubmitted(false)
     setQuizResult(null)
     setUserAnswers({})
+    setUserSentences({})
     setCurrentQuizIndex(0)
 
     setStoredData((prev) => {
@@ -430,6 +459,7 @@ export function useDailyVocabulary() {
     const questions = generateQuizQuestions(words)
     setQuizQuestions(questions)
     setUserAnswers({})
+    setUserSentences({})
     setCurrentQuizIndex(0)
     setQuizSubmitted(false)
     setQuizResult(null)
@@ -437,12 +467,40 @@ export function useDailyVocabulary() {
     setQuizStartTime(Date.now())
   }, [words])
 
-  // Select quiz answer
+  // Select quiz answer for multiple-choice
   const selectAnswer = useCallback((questionIdx: number, answer: string) => {
     setUserAnswers((prev) => ({
       ...prev,
       [questionIdx]: answer,
     }))
+  }, [])
+
+  // Update sentence creation answer (English sentence & Vietnamese meaning)
+  const updateSentenceAnswer = useCallback((questionIdx: number, sentenceEn: string, sentenceVi: string) => {
+    setUserSentences((prev) => ({
+      ...prev,
+      [questionIdx]: { sentenceEn, sentenceVi },
+    }))
+  }, [])
+
+  // Change target word for sentence creation question if user wants to practice another word
+  const changeSentenceQuestionWord = useCallback((questionIdx: number, newWord: DailyVocabWord) => {
+    setQuizQuestions((prev) => {
+      const copy = [...prev]
+      if (copy[questionIdx] && copy[questionIdx].type === 'make_sentence') {
+        copy[questionIdx] = {
+          ...copy[questionIdx],
+          wordId: newWord.id,
+          word: newWord.word,
+          prompt: `✍️ Thử thách Đặt câu: Đặt 1 câu tiếng Anh có chứa từ "${newWord.word}" và viết nghĩa tiếng Việt của câu đó ra:`,
+          contextSentence: `Từ mục tiêu: "${newWord.word}" (${newWord.phonetic} • ${newWord.partOfSpeech}) — Nghĩa: "${newWord.meaning}"`,
+          correctAnswer: newWord.word,
+          explanation: `Yêu cầu tự đặt 1 câu tiếng Anh có chứa từ "${newWord.word}" và viết nghĩa tiếng Việt của câu đó. Ví dụ mẫu: "${newWord.exampleEn}" → ${newWord.exampleVi}`,
+          targetWord: newWord,
+        }
+      }
+      return copy
+    })
   }, [])
 
   // Submit quiz and calculate result
@@ -451,20 +509,52 @@ export function useDailyVocabulary() {
 
     let score = 0
     const wrongAnswers: DailyQuizResult['wrongAnswers'] = []
+    const createdSentences: NonNullable<DailyQuizResult['createdSentences']> = []
 
     quizQuestions.forEach((q, idx) => {
-      const userChoice = userAnswers[idx] || ''
-      if (userChoice.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
-        score++
+      if (q.type === 'make_sentence') {
+        const sentence = userSentences[idx]
+        const en = sentence?.sentenceEn?.trim() || ''
+        const vi = sentence?.sentenceVi?.trim() || ''
+        const targetWord = q.targetWord?.word || q.word
+        const hasWord = sentenceContainsWord(en, targetWord)
+        const isComplete = en.length >= 3 && vi.length >= 2 && hasWord
+
+        if (isComplete) {
+          score++
+          createdSentences.push({
+            word: targetWord,
+            sentenceEn: en,
+            sentenceVi: vi,
+          })
+        } else {
+          wrongAnswers.push({
+            questionId: q.id,
+            prompt: q.prompt,
+            userChoice: en ? `"${en}" (Dịch: ${vi || 'Chưa dịch'})` : '(Chưa đặt câu)',
+            correctChoice: `Câu tiếng Anh chứa "${targetWord}" kèm nghĩa tiếng Việt`,
+            word: targetWord,
+            explanation: !en
+              ? `Bạn chưa nhập câu tiếng Anh.`
+              : !hasWord
+                ? `Câu bạn viết ("${en}") chưa chứa từ vựng "${targetWord}". Ví dụ mẫu: "${q.targetWord?.exampleEn || ''}"`
+                : `Bạn chưa nhập nghĩa tiếng Việt cho câu bạn vừa đặt.`,
+          })
+        }
       } else {
-        wrongAnswers.push({
-          questionId: q.id,
-          prompt: q.prompt,
-          userChoice: userChoice || '(Chưa chọn)',
-          correctChoice: q.correctAnswer,
-          word: q.word,
-          explanation: q.explanation,
-        })
+        const userChoice = userAnswers[idx] || ''
+        if (userChoice.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase()) {
+          score++
+        } else {
+          wrongAnswers.push({
+            questionId: q.id,
+            prompt: q.prompt,
+            userChoice: userChoice || '(Chưa chọn)',
+            correctChoice: q.correctAnswer,
+            word: q.word,
+            explanation: q.explanation,
+          })
+        }
       }
     })
 
@@ -483,6 +573,7 @@ export function useDailyVocabulary() {
       timeSpentSeconds,
       completedAt: new Date().toISOString(),
       wrongAnswers,
+      createdSentences,
     }
 
     setQuizResult(result)
@@ -499,6 +590,7 @@ export function useDailyVocabulary() {
           quizScore: score,
           quizTotal: total,
           percentage,
+          createdSentences,
         },
       }
       const nextState = { ...prev, completedDays: updatedDays }
@@ -508,6 +600,9 @@ export function useDailyVocabulary() {
 
     // Sync to Supabase `english_study_logs`
     try {
+      const sentenceSummary = createdSentences.length > 0
+        ? ` Đã đặt câu: "${createdSentences[0].sentenceEn}" (${createdSentences[0].sentenceVi})`
+        : ''
       await supabase.from('english_study_logs').insert([
         {
           user_id: user?.id || '94f8ff1b-439c-43b1-b9f0-5a970754da31',
@@ -515,7 +610,7 @@ export function useDailyVocabulary() {
           duration_minutes: Math.max(1, Math.round(timeSpentSeconds / 60)),
           words_reviewed: words.length,
           score: percentage,
-          note: `Hoàn thành bài kiểm tra ${words.length} từ vựng Ngày ${selectedDay} (${score}/${total} điểm)`,
+          note: `Hoàn thành bài kiểm tra ${words.length} từ vựng Ngày ${selectedDay} (${score}/${total} điểm).${sentenceSummary}`,
         },
       ])
       toast.success(
@@ -526,7 +621,7 @@ export function useDailyVocabulary() {
     } catch (e) {
       console.error('Failed to log study session to Supabase', e)
     }
-  }, [quizQuestions, userAnswers, quizStartTime, selectedDay, todayStr, user?.id, words.length])
+  }, [quizQuestions, userAnswers, userSentences, quizStartTime, selectedDay, todayStr, user?.id, words.length])
 
   // Reset/Restart quiz
   const restartQuiz = useCallback(() => {
@@ -571,6 +666,9 @@ export function useDailyVocabulary() {
     setCurrentQuizIndex,
     userAnswers,
     selectAnswer,
+    userSentences,
+    updateSentenceAnswer,
+    changeSentenceQuestionWord,
     submitQuiz,
     restartQuiz,
     quizSubmitted,
