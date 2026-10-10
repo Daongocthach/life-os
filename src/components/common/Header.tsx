@@ -1,20 +1,19 @@
-import { Moon, Sun, Globe, LogOut, Eye, EyeOff } from 'lucide-react'
+import { Globe, LogOut, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LifeOSLogo } from '@/components/common/LifeOSLogo'
-import { useTheme } from '@/hooks/useTheme'
+import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { useI18n } from '@/hooks/useI18n'
 import { useAuth } from '@/hooks/useAuth'
 import { usePrivacy } from '@/hooks/usePrivacy'
 
 export function Header() {
-  const { isDark, toggleTheme } = useTheme()
   const { language, toggleLanguage } = useI18n()
   const { logout, isAuthenticated } = useAuth()
   const { isMasked, toggleMask } = usePrivacy()
 
   return (
     <header className="md:hidden sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
-      <div className="container flex h-14 items-center justify-between px-4">
+      <div className="w-full max-w-full flex h-14 items-center justify-between px-4">
         {/* Mobile Brand */}
         <div className="flex items-center space-x-2.5">
           <LifeOSLogo size={28} />
@@ -47,15 +46,7 @@ export function Header() {
           </Button>
 
           {/* Theme Switch */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-8 w-8"
-            title="Đổi theme"
-          >
-            {isDark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-700" />}
-          </Button>
+          <ThemeToggle variant="dropdown" />
 
           {isAuthenticated && (
             <Button

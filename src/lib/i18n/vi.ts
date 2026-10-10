@@ -182,4 +182,16 @@ export const vi = {
     statusReview: 'REVIEW',
     statusDone: 'DONE',
   },
+  theme: {
+    title: 'Giao diện',
+    light: 'Sáng',
+    dark: 'Tối',
+    system: 'Hệ thống',
+    switchToLight: 'Chuyển sang giao diện Sáng',
+    switchToDark: 'Chuyển sang giao diện Tối',
+    switchToSystem: 'Chuyển sang theo Hệ thống',
+    toastLight: 'Đã chuyển sang giao diện Sáng ☀️',
+    toastDark: 'Đã chuyển sang giao diện Tối 🌙',
+    toastSystem: 'Đã chuyển sang giao diện Hệ thống 💻',
+  },
 }

@@ -15,7 +15,7 @@ import { Toaster } from 'sonner'
 export function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard')
   const { isAuthenticated, isLoading } = useAuth()
-  const { theme } = useTheme()
+  const { resolvedTheme } = useTheme()
 
   if (isLoading) {
     return (
@@ -33,23 +33,23 @@ export function App() {
     return (
       <>
         <LoginView />
-        <Toaster position="top-right" theme={theme} richColors />
+        <Toaster position="top-right" theme={resolvedTheme} richColors />
       </>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-background text-foreground flex font-sans transition-colors duration-200 w-full max-w-full overflow-x-hidden">
       {/* 1. Desktop Sidebar (Left side, fixed on md+) */}
       <Sidebar currentTab={currentTab} onSelectTab={setCurrentTab} />
 
       {/* 2. Main Content Area (Offset by sidebar width on desktop) */}
-      <div className="flex-1 flex flex-col md:pl-64 min-h-screen">
+      <div className="flex-1 flex flex-col md:pl-64 min-h-screen w-full max-w-full min-w-0 overflow-x-hidden">
         {/* Mobile Header (Hidden on md+) */}
         <Header />
 
         {/* Content Container */}
-        <main className="flex-1 max-w-5xl w-full mx-auto py-6 px-4 sm:px-8">
+        <main className="flex-1 max-w-5xl w-full mx-auto py-6 px-4 sm:px-8 min-w-0">
           {currentTab === 'dashboard' && <DashboardView onNavigate={setCurrentTab} />}
           {currentTab === 'finance' && <FinanceView />}
           {currentTab === 'tasks' && <TasksView />}
@@ -65,7 +65,7 @@ export function App() {
       <GlobalConfirmDialog />
 
       {/* Global Toast Sonner */}
-      <Toaster position="top-right" theme={theme} richColors closeButton />
+      <Toaster position="top-right" theme={resolvedTheme} richColors closeButton />
     </div>
   )
 }

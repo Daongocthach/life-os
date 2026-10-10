@@ -1,20 +1,27 @@
 import { useEffect } from 'react'
-import { useThemeStore, type Theme } from '@/stores/themeStore'
+import { useThemeStore, type Theme, type ResolvedTheme } from '@/stores/themeStore'
+
+export type { Theme, ResolvedTheme }
 
 export function useTheme() {
-  const { theme, setTheme, toggleTheme } = useThemeStore()
+  const { theme, resolvedTheme, setTheme, toggleTheme } = useThemeStore()
 
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark')
+    // Ensure DOM class and color-scheme remain in sync
+    const root = document.documentElement
+    if (resolvedTheme === 'dark') {
+      root.classList.add('dark')
+      root.style.colorScheme = 'dark'
     } else {
-      document.documentElement.classList.remove('dark')
+      root.classList.remove('dark')
+      root.style.colorScheme = 'light'
     }
-  }, [theme])
+  }, [resolvedTheme])
 
   return {
     theme,
-    isDark: theme === 'dark',
+    resolvedTheme,
+    isDark: resolvedTheme === 'dark',
     setTheme,
     toggleTheme,
   }

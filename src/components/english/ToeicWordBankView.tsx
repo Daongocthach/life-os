@@ -310,7 +310,7 @@ export function ToeicWordBankView() {
   } = useToeicWordBank()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full min-w-0 overflow-x-hidden">
       {/* 1. Header Banner & Analytics */}
       <Card className="border-border/80 bg-linear-to-r from-card/90 via-card to-card/90 shadow-xs overflow-hidden">
         <div className="p-4 sm:p-6 space-y-4">
@@ -366,7 +366,7 @@ export function ToeicWordBankView() {
           </div>
 
           {/* 30 Days Selection Slider */}
-          <div className="pt-3 border-t border-border/50 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="pt-3 border-t border-border/50 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none w-full max-w-full min-w-0">
             <span className="text-xs font-semibold text-muted-foreground shrink-0 mr-1 flex items-center gap-1">
               <Layers className="h-3.5 w-3.5" />
               Chọn ngày:
@@ -399,7 +399,7 @@ export function ToeicWordBankView() {
       </Card>
 
       {/* 2. Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full max-w-full min-w-0">
         {/* Search Input */}
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -412,49 +412,51 @@ export function ToeicWordBankView() {
         </div>
 
         {/* Status Filter Buttons */}
-        <div className="inline-flex rounded-xl bg-muted p-1 border border-border/60 w-full sm:w-auto overflow-x-auto">
-          <button
-            onClick={() => setFilterMode('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
-              filterMode === 'all'
-                ? 'bg-background text-foreground shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Tất cả ({totalCount})
-          </button>
-          <button
-            onClick={() => setFilterMode('not_in_flashcard')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
-              filterMode === 'not_in_flashcard'
-                ? 'bg-background text-foreground shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Từ chưa biết / Chưa lưu
-          </button>
-          <button
-            onClick={() => setFilterMode('in_flashcard')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
-              filterMode === 'in_flashcard'
-                ? 'bg-amber-500 text-white font-bold shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Star className="h-3 w-3 fill-current" />
-            Trong Flashcard ({inFlashcardCount})
-          </button>
-          <button
-            onClick={() => setFilterMode('mastered')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
-              filterMode === 'mastered'
-                ? 'bg-emerald-500 text-white font-bold shadow-xs'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Check className="h-3 w-3" />
-            Đã thuộc ({masteredCount})
-          </button>
+        <div className="w-full sm:w-auto overflow-x-auto scrollbar-none min-w-0 pb-1 sm:pb-0">
+          <div className="inline-flex rounded-xl bg-muted p-1 border border-border/60 shrink-0">
+            <button
+              onClick={() => setFilterMode('all')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                filterMode === 'all'
+                  ? 'bg-background text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Tất cả ({totalCount})
+            </button>
+            <button
+              onClick={() => setFilterMode('not_in_flashcard')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                filterMode === 'not_in_flashcard'
+                  ? 'bg-background text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Từ chưa biết / Chưa lưu
+            </button>
+            <button
+              onClick={() => setFilterMode('in_flashcard')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
+                filterMode === 'in_flashcard'
+                  ? 'bg-amber-500 text-white font-bold shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Star className="h-3 w-3 fill-current" />
+              Trong Flashcard ({inFlashcardCount})
+            </button>
+            <button
+              onClick={() => setFilterMode('mastered')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
+                filterMode === 'mastered'
+                  ? 'bg-emerald-500 text-white font-bold shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Check className="h-3 w-3" />
+              Đã thuộc ({masteredCount})
+            </button>
+          </div>
         </div>
       </div>
 

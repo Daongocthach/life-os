@@ -132,7 +132,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
   const currentQuestion = quizQuestions[currentQuizIndex]
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 w-full max-w-full min-w-0 overflow-x-hidden">
       {/* 1. Header Banner & Day Selector */}
       <Card className="border-border/80 bg-linear-to-r from-card/90 via-card to-card/90 shadow-xs overflow-hidden">
         <div className="p-4 sm:p-5">
@@ -211,7 +211,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
           </div>
 
           {/* Day selection slider / buttons */}
-          <div className="mt-4 pt-3 border-t border-border/50 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="mt-4 pt-3 border-t border-border/50 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none w-full max-w-full min-w-0">
             <span className="text-xs font-semibold text-muted-foreground shrink-0 mr-1 flex items-center gap-1">
               <Layers className="h-3.5 w-3.5" />
               Chọn ngày:
@@ -243,8 +243,9 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
       </Card>
 
       {/* 2. Navigation Tabs between Flashcard / List / Daily Quiz */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="inline-flex rounded-xl bg-muted p-1 border border-border/60">
+      <div className="flex items-center justify-between flex-wrap gap-3 w-full max-w-full min-w-0">
+        <div className="w-full sm:w-auto overflow-x-auto scrollbar-none min-w-0 pb-1 sm:pb-0">
+          <div className="inline-flex rounded-xl bg-muted p-1 border border-border/60 shrink-0">
           <button
             onClick={() => {
               setActiveMode('flashcard')
@@ -296,6 +297,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
             )}
           </button>
         </div>
+      </div>
 
         {/* Audio Tutor toggle button */}
         <div className="flex items-center gap-2">
@@ -528,7 +530,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
 
                 {/* BACK Bottom Controls */}
                 <div
-                  className="flex items-center justify-between pt-3 border-t border-border/50 text-xs"
+                  className="flex items-center justify-between pt-3 border-t border-border/50 text-xs flex-wrap gap-2"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Button
@@ -615,7 +617,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
       {activeMode === 'list' && (
         <div className="space-y-4">
           {/* Search & Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 w-full max-w-full min-w-0">
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -626,7 +628,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
               />
             </div>
 
-            <div className="flex items-center gap-1.5 self-end sm:self-auto">
+            <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto w-full sm:w-auto">
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <ListFilter className="h-3.5 w-3.5" /> Lọc:
               </span>

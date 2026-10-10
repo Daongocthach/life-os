@@ -1,16 +1,17 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Lock, Mail, ArrowRight } from 'lucide-react'
+import { Lock, Mail, ArrowRight, Globe } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LifeOSLogo } from '@/components/common/LifeOSLogo'
+import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { useAuth } from '@/hooks/useAuth'
 import { useI18n } from '@/hooks/useI18n'
 import { loginSchema, type LoginFormValues } from '@/schemas/authSchema'
 
 export function LoginView() {
-  const { t } = useI18n()
+  const { t, language, toggleLanguage } = useI18n()
   const { login, isLoading } = useAuth()
 
   const {
@@ -30,8 +31,23 @@ export function LoginView() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/20">
-      <Card className="w-full max-w-md border-border/80 shadow-xl overflow-hidden">
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-background">
+      {/* Top right quick controls */}
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleLanguage}
+          className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground flex items-center space-x-1"
+          title="Switch Language"
+        >
+          <Globe className="h-3.5 w-3.5" />
+          <span className="font-semibold uppercase text-[11px]">{language}</span>
+        </Button>
+        <ThemeToggle variant="dropdown" />
+      </div>
+
+      <Card className="w-full max-w-md border-border/80 shadow-xl overflow-hidden bg-card">
         <div className="bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6 pb-4 border-b border-border/40 text-center">
           <div className="flex justify-center mb-3">
             <LifeOSLogo size={56} />

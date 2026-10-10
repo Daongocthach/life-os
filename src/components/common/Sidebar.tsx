@@ -4,8 +4,6 @@ import {
   BookOpen,
   CheckSquare,
   Globe,
-  Sun,
-  Moon,
   LogOut,
   Eye,
   EyeOff,
@@ -13,8 +11,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LifeOSLogo } from '@/components/common/LifeOSLogo'
+import { ThemeToggle } from '@/components/common/ThemeToggle'
 import { useI18n } from '@/hooks/useI18n'
-import { useTheme } from '@/hooks/useTheme'
 import { useAuth } from '@/hooks/useAuth'
 import { usePrivacy } from '@/hooks/usePrivacy'
 import { cn } from '@/lib/utils'
@@ -27,7 +25,6 @@ interface SidebarProps {
 
 export function Sidebar({ currentTab, onSelectTab }: SidebarProps) {
   const { t, language, toggleLanguage } = useI18n()
-  const { isDark, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
   const { isMasked, toggleMask } = usePrivacy()
 
@@ -95,31 +92,19 @@ export function Sidebar({ currentTab, onSelectTab }: SidebarProps) {
       {/* Bottom User & System Controls */}
       <div className="p-4 border-t border-border/60 space-y-3 bg-muted/20">
         {/* Language & Theme Switchers */}
-        <div className="flex items-center justify-between px-1">
+        <div className="flex items-center justify-between gap-2 px-1">
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleLanguage}
-            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground flex items-center space-x-1.5"
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground flex items-center space-x-1.5"
             title="Switch Language"
           >
             <Globe className="h-3.5 w-3.5" />
-            <span className="font-semibold uppercase">{language}</span>
+            <span className="font-semibold uppercase text-[11px]">{language}</span>
           </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            title={isDark ? 'Light Mode' : 'Dark Mode'}
-          >
-            {isDark ? (
-              <Sun className="h-4 w-4 text-amber-400" />
-            ) : (
-              <Moon className="h-4 w-4 text-slate-700" />
-            )}
-          </Button>
+          <ThemeToggle variant="segmented" />
         </div>
 
         {/* User profile & Logout */}

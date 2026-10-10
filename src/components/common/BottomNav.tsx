@@ -26,7 +26,7 @@ export function BottomNav({ currentTab, onSelectTab }: BottomNavProps) {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border/70 bg-background/90 backdrop-blur-lg">
-      <div className="container flex h-16 max-w-lg items-center justify-around px-2">
+      <div className="w-full max-w-lg mx-auto flex h-16 items-center justify-around px-2">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = currentTab === tab.id || (tab.id === 'english' && currentTab === 'vocabulary')

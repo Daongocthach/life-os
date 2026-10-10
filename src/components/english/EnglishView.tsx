@@ -351,9 +351,9 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
   }
 
   return (
-    <div className="space-y-6 pb-24 relative">
+    <div className="space-y-6 pb-24 relative w-full max-w-full min-w-0 overflow-x-hidden">
       {/* Top Header Row with Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full max-w-full min-w-0">
         <div>
           <div className="flex items-center space-x-2">
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
@@ -387,7 +387,7 @@ export function EnglishView({ initialTab }: EnglishViewProps = {}) {
         </div>
 
         {/* View Switcher: Từ mỗi ngày vs Kho 2000 từ vs Luyện nghe vs Danh sách bài vs Sổ từ vựng */}
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 w-full sm:w-auto max-w-full min-w-0 scrollbar-none">
           <div className="inline-flex rounded-xl bg-muted p-1 border border-border/60 shrink-0">
             <button
               onClick={() => setActiveTab('daily_vocab')}

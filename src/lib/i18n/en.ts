@@ -182,4 +182,16 @@ export const en = {
     statusReview: 'REVIEW',
     statusDone: 'DONE',
   },
+  theme: {
+    title: 'Theme',
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+    switchToLight: 'Switch to Light mode',
+    switchToDark: 'Switch to Dark mode',
+    switchToSystem: 'Switch to System mode',
+    toastLight: 'Switched to Light mode ☀️',
+    toastDark: 'Switched to Dark mode 🌙',
+    toastSystem: 'Switched to System mode 💻',
+  },
 }
