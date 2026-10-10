@@ -11,6 +11,8 @@ export interface DailyVocabWord {
   exampleVi: string
   topic: string
   collocation?: string
+  isReview?: boolean
+  originDay?: number
 }
 
 export interface DailyVocabPack {

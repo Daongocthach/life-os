@@ -47,6 +47,10 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
     currentPack,
     words,
     // Flashcard
+    flashcardWords,
+    isReviewEnabled,
+    toggleReview,
+    reviewWordsCount,
     cardIndex,
     isFlipped,
     flipCard,
@@ -88,7 +92,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
   const [filterMastered, setFilterMastered] = useState<'all' | 'mastered' | 'unlearned'>('all')
   const [showSentenceHint, setShowSentenceHint] = useState<boolean>(false)
 
-  const currentWord: DailyVocabWord | undefined = words[cardIndex]
+  const currentWord: DailyVocabWord | undefined = flashcardWords[cardIndex]
   const currentProgress = completedDays[selectedDay]
   const masteredCount = words.filter((w) => masteredWordIds.has(w.id)).length
   const progressPercent = Math.round((masteredCount / words.length) * 100)
@@ -265,7 +269,7 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
             }`}
           >
             <BookOpen className="h-3.5 w-3.5" />
-            Học Flashcards ({words.length} từ)
+            Học Flashcards ({flashcardWords.length} thẻ{isReviewEnabled && reviewWordsCount > 0 ? ` • +${reviewWordsCount} ôn lại` : ''})
           </button>
           <button
             onClick={() => {
@@ -306,27 +310,49 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
         </div>
       </div>
 
-        {/* Audio Tutor toggle button */}
-        <div className="flex items-center gap-2">
+        {/* Audio Tutor & Review Mode toggle buttons */}
+        <div className="flex items-center gap-2 flex-wrap">
           {activeMode === 'flashcard' && (
-            <Button
-              size="sm"
-              variant={isAutoPlaying ? 'destructive' : 'outline'}
-              onClick={isAutoPlaying ? stopAutoPlay : startAutoPlay}
-              className="text-xs h-8.5 gap-1.5 shadow-xs"
-            >
-              {isAutoPlaying ? (
-                <>
-                  <Pause className="h-3.5 w-3.5" />
-                  Dừng đọc tự động
-                </>
-              ) : (
-                <>
-                  <Headphones className="h-3.5 w-3.5 text-primary" />
-                  Tự động đọc {words.length} từ
-                </>
-              )}
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant={isReviewEnabled ? 'default' : 'outline'}
+                onClick={toggleReview}
+                className={`text-xs h-8.5 gap-1.5 shadow-xs ${
+                  isReviewEnabled
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                    : 'text-muted-foreground'
+                }`}
+                title="Bật/Tắt ôn tập xen kẽ từ cũ từ các ngày trước (Spaced Repetition)"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Ôn từ cũ: {isReviewEnabled ? 'Bật' : 'Tắt'}
+                {isReviewEnabled && reviewWordsCount > 0 && (
+                  <span className="ml-0.5 px-1.5 py-0.2 text-[10px] bg-black/20 rounded-full font-bold">
+                    +{reviewWordsCount}
+                  </span>
+                )}
+              </Button>
+
+              <Button
+                size="sm"
+                variant={isAutoPlaying ? 'destructive' : 'outline'}
+                onClick={isAutoPlaying ? stopAutoPlay : startAutoPlay}
+                className="text-xs h-8.5 gap-1.5 shadow-xs"
+              >
+                {isAutoPlaying ? (
+                  <>
+                    <Pause className="h-3.5 w-3.5" />
+                    Dừng đọc
+                  </>
+                ) : (
+                  <>
+                    <Headphones className="h-3.5 w-3.5 text-primary" />
+                    Tự động đọc ({flashcardWords.length})
+                  </>
+                )}
+              </Button>
+            </>
           )}
 
           {onNavigateToSavedVocab && (
@@ -349,11 +375,11 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
           {/* Card counter & progress */}
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
             <span className="font-semibold text-foreground">
-              Từ {cardIndex + 1} / {words.length}
+              Thẻ {cardIndex + 1} / {flashcardWords.length}
             </span>
             <div className="flex items-center gap-2">
               <span className="text-[11px]">Đã thuộc: {progressPercent}%</span>
-              <Progress value={((cardIndex + 1) / words.length) * 100} className="w-24 h-2" />
+              <Progress value={((cardIndex + 1) / flashcardWords.length) * 100} className="w-24 h-2" />
             </div>
           </div>
 
@@ -369,10 +395,20 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
               <div className="absolute inset-0 backface-hidden rounded-2xl border-2 border-border/80 bg-card p-6 sm:p-8 flex flex-col justify-between hover:border-primary/50 transition-colors group">
                 {/* Top Bar of the Card */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
                       {currentWord.partOfSpeech}
                     </Badge>
+                    {currentWord.isReview ? (
+                      <Badge variant="outline" className="text-amber-500 border-amber-500/40 bg-amber-500/10 text-[10px] px-2 py-0.5 gap-1 font-bold">
+                        <RotateCcw className="h-3 w-3" />
+                        Ôn tập từ cũ {currentWord.originDay ? `(Ngày ${currentWord.originDay})` : ''}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] px-2 py-0.5 text-muted-foreground">
+                        Từ mới
+                      </Badge>
+                    )}
                     {masteredWordIds.has(currentWord.id) && (
                       <Badge variant="success" className="text-[10px] px-2 py-0.5">
                         <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -458,10 +494,16 @@ export function DailyVocabView({ onNavigateToSavedVocab }: DailyVocabViewProps) 
               <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 border-primary/40 bg-card p-6 sm:p-8 flex flex-col justify-between shadow-lg">
                 {/* BACK Top Bar */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="secondary" className="text-xs font-semibold">
                       Định nghĩa & Ví dụ
                     </Badge>
+                    {currentWord.isReview && (
+                      <Badge variant="outline" className="text-amber-500 border-amber-500/40 bg-amber-500/10 text-[10px] px-2 py-0.5 gap-1 font-bold">
+                        <RotateCcw className="h-3 w-3" />
+                        Ôn tập {currentWord.originDay ? `(Ngày ${currentWord.originDay})` : ''}
+                      </Badge>
+                    )}
                     <span className="text-xs font-mono text-muted-foreground">
                       {currentWord.word} ({currentWord.partOfSpeech})
                     </span>

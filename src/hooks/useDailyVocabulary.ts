@@ -31,6 +31,7 @@ const LOCAL_STORAGE_KEY = 'lifeos_daily_vocab_progress'
 interface StoredProgress {
   selectedDay: number
   dailyGoal?: number
+  isReviewEnabled?: boolean
   completedDays: Record<number, DayProgress>
 }
 
@@ -42,6 +43,7 @@ function loadStoredProgress(): StoredProgress {
       return {
         selectedDay: parsed.selectedDay || getTodayDayIndex(),
         dailyGoal: parsed.dailyGoal || 50,
+        isReviewEnabled: parsed.isReviewEnabled !== undefined ? parsed.isReviewEnabled : true,
         completedDays: parsed.completedDays || {},
       }
     }
@@ -51,6 +53,7 @@ function loadStoredProgress(): StoredProgress {
   return {
     selectedDay: getTodayDayIndex(),
     dailyGoal: 50,
+    isReviewEnabled: true,
     completedDays: {},
   }
 }
@@ -207,6 +210,67 @@ export function useDailyVocabulary() {
   // Current pack and sliced words based on dailyGoal
   const currentPack = useMemo(() => getDailyVocabPack(selectedDay), [selectedDay])
   const words = useMemo(() => currentPack.words.slice(0, dailyGoal), [currentPack, dailyGoal])
+
+  // Review Mode state (Interleave old words into Flashcards for spaced repetition)
+  const [isReviewEnabled, setIsReviewEnabled] = useState<boolean>(() => storedData.isReviewEnabled ?? true)
+
+  const handleToggleReview = useCallback(() => {
+    setIsReviewEnabled((prev) => {
+      const next = !prev
+      setCardIndex(0)
+      setIsFlipped(false)
+      setStoredData((s) => {
+        const nextState = { ...s, isReviewEnabled: next }
+        saveStoredProgress(nextState)
+        return nextState
+      })
+      toast.info(next ? 'Đã bật chế độ Ôn từ cũ (Review Mode) 🔄' : 'Đã tắt chế độ Ôn từ cũ')
+      return next
+    })
+  }, [])
+
+  // Flashcards queue with interleaved review words from previous days
+  const flashcardWords = useMemo<DailyVocabWord[]>(() => {
+    if (!isReviewEnabled || words.length === 0) return words
+
+    // Candidate review words: from earlier days if available, else other days
+    const priorPacks = DAILY_VOCAB_PACKS.filter((p) => p.day < selectedDay)
+    const reviewPool: DailyVocabWord[] = []
+
+    if (priorPacks.length > 0) {
+      priorPacks.forEach((p) => reviewPool.push(...p.words))
+    } else {
+      // If day 1, take from other packs so review mode still works
+      const otherPacks = DAILY_VOCAB_PACKS.filter((p) => p.day !== selectedDay)
+      otherPacks.forEach((p) => reviewPool.push(...p.words))
+    }
+
+    if (reviewPool.length === 0) return words
+
+    const shuffledPool = shuffleArray(reviewPool)
+    const queue: DailyVocabWord[] = []
+    let reviewIdx = 0
+
+    // Interleave: insert 1 review card after every 4 current words
+    words.forEach((w, i) => {
+      queue.push(w)
+      if ((i + 1) % 4 === 0 && reviewIdx < shuffledPool.length) {
+        const rWord = shuffledPool[reviewIdx++]
+        queue.push({
+          ...rWord,
+          id: `rev_${rWord.id}`,
+          isReview: true,
+          originDay: rWord.day,
+        })
+      }
+    })
+
+    return queue
+  }, [words, isReviewEnabled, selectedDay])
+
+  const reviewWordsCount = useMemo(() => {
+    return flashcardWords.filter((w) => w.isReview).length
+  }, [flashcardWords])
 
   // Flashcards state
   const [cardIndex, setCardIndex] = useState<number>(0)
@@ -397,13 +461,13 @@ export function useDailyVocabulary() {
   // Card navigation
   const nextCard = useCallback(() => {
     setIsFlipped(false)
-    setCardIndex((prev) => (prev < words.length - 1 ? prev + 1 : 0))
-  }, [words.length])
+    setCardIndex((prev) => (prev < flashcardWords.length - 1 ? prev + 1 : 0))
+  }, [flashcardWords.length])
 
   const prevCard = useCallback(() => {
     setIsFlipped(false)
-    setCardIndex((prev) => (prev > 0 ? prev - 1 : words.length - 1))
-  }, [words.length])
+    setCardIndex((prev) => (prev > 0 ? prev - 1 : flashcardWords.length - 1))
+  }, [flashcardWords.length])
 
   const flipCard = useCallback(() => {
     setIsFlipped((prev) => !prev)
@@ -426,15 +490,15 @@ export function useDailyVocabulary() {
     autoPlayIndexRef.current = cardIndex
 
     const playNext = (index: number) => {
-      if (index >= words.length) {
+      if (index >= flashcardWords.length) {
         setIsAutoPlaying(false)
-        toast.success(`Đã hoàn thành lượt nghe ${words.length} từ vựng!`)
+        toast.success(`Đã hoàn thành lượt nghe ${flashcardWords.length} từ vựng!`)
         return
       }
 
       setCardIndex(index)
       setIsFlipped(false)
-      const currentWord = words[index]
+      const currentWord = flashcardWords[index]
 
       // Step 1: Speak word in English
       speak(currentWord.word, 0.85)
@@ -452,7 +516,7 @@ export function useDailyVocabulary() {
     }
 
     playNext(cardIndex)
-  }, [cardIndex, words, speak])
+  }, [cardIndex, flashcardWords, speak])
 
   // Start Daily Quiz
   const startQuiz = useCallback(() => {
@@ -645,6 +709,10 @@ export function useDailyVocabulary() {
     currentPack,
     words,
     // Flashcard
+    flashcardWords,
+    isReviewEnabled,
+    toggleReview: handleToggleReview,
+    reviewWordsCount,
     cardIndex,
     setCardIndex,
     isFlipped,
